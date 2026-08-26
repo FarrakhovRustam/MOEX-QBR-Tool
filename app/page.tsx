@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
   AlertTriangle,
   ArrowRight,
@@ -9,12 +10,13 @@ import {
   ChevronDown,
   CircleDot,
   ClipboardList,
+  FileText,
   Flag,
   LayoutDashboard,
   Lightbulb,
   ListChecks,
   MoreHorizontal,
-  Presentation,
+  Plus,
   Sparkles,
   Target,
   TrendingUp,
@@ -23,6 +25,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Sidebar,
   SidebarContent,
@@ -83,7 +86,122 @@ function StatCard({ icon: Icon, label, value, note, tone }: { icon: typeof Targe
   )
 }
 
+const workspaceData = {
+  "Цели и метрики": {
+    eyebrow: "Результативность",
+    title: "Цели и метрики квартала",
+    description: "Каждая цель связана со стратегическим приоритетом и измеримым результатом.",
+    button: "Добавить метрику",
+    items: [
+      { title: "Увеличить регулярное использование сервиса", meta: "Стратегический приоритет · Клиентский рост", value: "105%", label: "выполнение", tone: "green", details: ["План: 50 тыс. MAU", "Факт: 52,4 тыс. MAU", "Уверенность: высокая"] },
+      { title: "Повысить конверсию в целевое действие", meta: "Стратегический приоритет · Эффективность", value: "91%", label: "выполнение", tone: "yellow", details: ["План: 18%", "Факт: 16,3%", "Отклонение объяснено"] },
+      { title: "Сократить время обработки заявки", meta: "Стратегический приоритет · Клиентский опыт", value: "79%", label: "выполнение", tone: "red", details: ["План: 3,0 мин.", "Факт: 3,8 мин.", "Требуется комментарий"] },
+    ],
+  },
+  Достижения: {
+    eyebrow: "Полученный эффект",
+    title: "Достижения и уроки",
+    description: "Фиксируем не выполненные работы, а изменение продукта и подтвержденный эффект.",
+    button: "Добавить достижение",
+    items: [
+      { title: "Новый сценарий онбординга", meta: "Запущено 18 августа", value: "+12%", label: "к конверсии первого шага", tone: "green", details: ["Что изменили: сократили путь с 5 до 3 шагов", "Подтверждение: A/B-тест, 34 тыс. пользователей", "Урок: персонализация дает больший эффект новым клиентам"] },
+      { title: "Повышена стабильность сервиса", meta: "Результат квартальной программы надежности", value: "99,97%", label: "доступность", tone: "green", details: ["Что изменили: устранили 3 основных класса сбоев", "Подтверждение: −42% критических инцидентов", "Урок: профилактика эффективнее расширения мониторинга"] },
+    ],
+  },
+  Риски: {
+    eyebrow: "Контроль отклонений",
+    title: "Риски и зависимости",
+    description: "Оцениваем влияние, назначаем владельца и определяем, нужна ли эскалация.",
+    button: "Добавить риск",
+    items: [
+      { title: "Дефицит аналитического ресурса", meta: "Связанная цель · Конверсия", value: "Высокий", label: "уровень риска", tone: "red", details: ["Вероятность: высокая · Влияние: высокое", "План: временно выделить 0,5 FTE", "Владелец: Мария Орлова · Нужна эскалация"] },
+      { title: "Задержка миграции витрины данных", meta: "Зависимая команда · Data Platform", value: "Средний", label: "уровень риска", tone: "yellow", details: ["Вероятность: средняя · Влияние: высокое", "План: согласовать поэтапную поставку", "Владелец не назначен · замечание AI"] },
+    ],
+  },
+  Решения: {
+    eyebrow: "Управленческий фокус",
+    title: "Решения, требуемые от руководства",
+    description: "Выносим на QBR только вопросы, которые команда не может решить самостоятельно.",
+    button: "Добавить решение",
+    items: [
+      { title: "Выделить аналитика на IV квартал", meta: "Решение до 15 октября · Директор по продукту", value: "0,5 FTE", label: "запрашиваемый ресурс", tone: "red", details: ["Предложение: перераспределить ресурс из завершенного проекта", "Альтернатива: сократить число экспериментов с 6 до 3", "Бездействие: риск недостижения целевой конверсии"] },
+      { title: "Подтвердить приоритет автоматизации", meta: "Решение до 20 октября · Продуктовый комитет", value: "P1", label: "предлагаемый приоритет", tone: "yellow", details: ["Предложение: включить инициативу в квартальный план", "Эффект: −25% времени обработки", "Бездействие: рост операционной нагрузки"] },
+    ],
+  },
+  "Следующий квартал": {
+    eyebrow: "Фокус вперед",
+    title: "Приоритеты следующего квартала",
+    description: "Три результата, измеримые критерии успеха и сознательный отказ от второстепенных инициатив.",
+    button: "Добавить приоритет",
+    items: [
+      { title: "Довести конверсию до 20%", meta: "Приоритет 1 · Владелец продукта", value: "20%", label: "целевая метрика", tone: "green", details: ["Ожидаемый результат: +18 тыс. действий за квартал", "Инициативы: 6 продуктовых экспериментов", "Зависимость: аналитический ресурс"] },
+      { title: "Сократить обработку заявки", meta: "Приоритет 2 · Тимлид", value: "≤ 2,8 мин.", label: "целевая метрика", tone: "yellow", details: ["Ожидаемый результат: −30% ручных операций", "Инициатива: автоматизация проверок", "Срок: 20 декабря"] },
+      { title: "Не берем в квартал", meta: "Сознательный выбор команды", value: "2", label: "инициативы отложены", tone: "neutral", details: ["Редизайн личного кабинета", "Расширение отчетности", "Причина: фокус на конверсии и автоматизации"] },
+    ],
+  },
+} as const
+
+function SectionWorkspace({ section }: { section: keyof typeof workspaceData }) {
+  const data = workspaceData[section]
+  const toneStyles = {
+    green: "bg-emerald-50 text-emerald-700",
+    yellow: "bg-amber-50 text-amber-700",
+    red: "bg-rose-50 text-rose-700",
+    neutral: "bg-slate-100 text-slate-700",
+  }
+  return (
+    <main className="mx-auto w-full max-w-[1180px] p-4 md:p-7">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#ef3e42]">{data.eyebrow}</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{data.title}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{data.description}</p>
+        </div>
+        <Button className="bg-slate-950 text-white hover:bg-slate-800"><Plus />{data.button}</Button>
+      </div>
+      <div className="mt-6 space-y-4">
+        {data.items.map((item, index) => (
+          <article key={item.title} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition hover:border-slate-300">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_170px]">
+              <div>
+                <div className="flex items-start gap-4">
+                  <div className="grid size-8 shrink-0 place-items-center rounded-full border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">{index + 1}</div>
+                  <div>
+                    <h3 className="font-semibold text-slate-950">{item.title}</h3>
+                    <p className="mt-1 text-xs text-slate-500">{item.meta}</p>
+                  </div>
+                </div>
+                <div className="ml-12 mt-4 grid gap-2 md:grid-cols-3">
+                  {item.details.map((detail) => <div key={detail} className="rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">{detail}</div>)}
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-4 lg:block lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+                <div className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-semibold ${toneStyles[item.tone]}`}>{item.value}</div>
+                <p className="mt-2 text-xs text-slate-500">{item.label}</p>
+                <Button variant="ghost" size="sm" className="mt-3 px-0 text-slate-600">Изменить <ArrowRight /></Button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="mt-5 flex items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+        <div className="rounded-xl bg-white p-2.5 text-violet-700 shadow-sm"><Bot className="size-5" /></div>
+        <div><p className="text-sm font-semibold text-violet-950">AI-помощник проверит качество раздела</p><p className="mt-0.5 text-xs text-violet-700">Найдет пропущенные данные, слабые формулировки и неподтвержденные выводы.</p></div>
+        <Button variant="outline" size="sm" className="ml-auto hidden border-violet-200 bg-white text-violet-800 sm:flex">Проверить раздел</Button>
+      </div>
+    </main>
+  )
+}
+
 export default function Home() {
+  const [activeSection, setActiveSection] = useState("Обзор")
+  const [mode, setMode] = useState("Подготовка")
+
+  const advanceMode = () => {
+    if (mode === "Подготовка") setMode("Ревью")
+    else if (mode === "Ревью") setMode("Итоги")
+  }
+
   return (
     <SidebarProvider>
       <Sidebar className="border-r-0 bg-[#111827] text-white" collapsible="icon">
@@ -152,27 +270,42 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="hidden border-slate-200 bg-white sm:flex"><Presentation />Режим ревью</Button>
-            <Button size="sm" className="bg-[#ef3e42] text-white hover:bg-[#d92f34]">Завершить подготовку<ArrowRight /></Button>
+            <div className="hidden items-center rounded-lg bg-slate-100 p-1 lg:flex">
+              {["Подготовка", "Ревью", "Итоги"].map((item) => (
+                <button
+                  key={item}
+                  onClick={() => setMode(item)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${mode === item ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+            <Button onClick={advanceMode} size="sm" className="bg-[#ef3e42] text-white hover:bg-[#d92f34]">
+              {mode === "Подготовка" ? "Завершить подготовку" : mode === "Ревью" ? "Зафиксировать итоги" : "Экспорт PDF"}
+              {mode === "Итоги" ? <FileText /> : <ArrowRight />}
+            </Button>
           </div>
         </header>
 
-        <div className="border-b border-slate-200 bg-white px-4 md:px-7">
-          <div className="flex h-14 items-center justify-between gap-6 overflow-x-auto scrollbar-none">
-            <nav className="flex h-full shrink-0 items-center gap-6" aria-label="Разделы квартального обзора">
-              {reviewSections.map((item, index) => (
-                <button key={item} className={`relative h-full whitespace-nowrap text-sm transition ${index === 0 ? "font-semibold text-slate-950" : "font-medium text-slate-500 hover:text-slate-900"}`}>
-                  {item}{index === 0 && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#ef3e42]" />}
-                </button>
-              ))}
-            </nav>
+        <Tabs value={activeSection} onValueChange={setActiveSection} className="gap-0">
+          <div className="border-b border-slate-200 bg-white px-4 md:px-7">
+            <div className="flex h-14 items-center justify-between gap-6 overflow-x-auto scrollbar-none">
+              <TabsList variant="line" className="h-full shrink-0 gap-6 p-0" aria-label="Разделы квартального обзора">
+                {reviewSections.map((item) => (
+                  <TabsTrigger key={item} value={item} className="h-full px-0 text-sm data-[state=active]:font-semibold data-[state=active]:after:bg-[#ef3e42]">
+                    {item}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
             <div className="hidden shrink-0 items-center gap-2 text-xs text-slate-500 xl:flex">
               <span>Заполнено</span><Progress value={86} className="h-1.5 w-24 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-emerald-500" /><span className="font-semibold text-slate-700">86%</span>
             </div>
           </div>
-        </div>
+          </div>
 
-        <main className="mx-auto w-full max-w-[1480px] p-4 md:p-7">
+          {activeSection === "Обзор" ? (
+          <main className="mx-auto w-full max-w-[1480px] p-4 md:p-7">
           <section className="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
             <div className="grid lg:grid-cols-[1fr_310px]">
               <div className="relative p-5 md:p-6">
@@ -247,7 +380,11 @@ export default function Home() {
             <section className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center gap-2"><Flag className="size-4 text-rose-600" /><h3 className="text-sm font-semibold">Риски и зависимости</h3></div><ul className="mt-4 space-y-3 text-sm text-slate-600"><li className="flex gap-3"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-rose-500" /><span>Нехватка аналитического ресурса может сдвинуть запуск экспериментов.</span></li><li className="flex gap-3"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-amber-400" /><span>Зависимость от миграции витрины данных соседней командой.</span></li></ul></section>
             <section className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center gap-2"><Lightbulb className="size-4 text-violet-600" /><h3 className="text-sm font-semibold">Требуются решения</h3></div><ul className="mt-4 space-y-3 text-sm text-slate-600"><li className="flex gap-3"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-violet-500" /><span>Выделить 0,5 FTE аналитика на IV квартал.</span></li><li className="flex gap-3"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-violet-500" /><span>Подтвердить приоритет автоматизации обработки заявок.</span></li></ul></section>
           </div>
-        </main>
+          </main>
+          ) : (
+            <SectionWorkspace section={activeSection as keyof typeof workspaceData} />
+          )}
+        </Tabs>
       </SidebarInset>
     </SidebarProvider>
   )
