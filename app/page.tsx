@@ -18,9 +18,7 @@ import {
   GitBranch,
   LayoutDashboard,
   Lightbulb,
-  Link2,
   ListChecks,
-  MoreHorizontal,
   Plus,
   Rocket,
   Sparkles,
@@ -132,6 +130,8 @@ const initiatives = [
     metric: "Активные пользователи терминала",
     target: "1 000 клиентов",
     current: "680 клиентов",
+    risks: "1 средний",
+    riskTone: "yellow" as StatusTone,
     status: "В работе",
     tone: "blue" as StatusTone,
     progress: 68,
@@ -147,6 +147,8 @@ const initiatives = [
     metric: "Конверсия в целевое действие",
     target: "18%",
     current: "14,8%",
+    risks: "Нет",
+    riskTone: "green" as StatusTone,
     status: "В работе",
     tone: "blue" as StatusTone,
     progress: 82,
@@ -162,8 +164,10 @@ const initiatives = [
     metric: "Мигрированные витрины",
     target: "20 витрин",
     current: "11 витрин",
-    status: "Под риском",
+    status: "Приостановлена",
     tone: "red" as StatusTone,
+    risks: "2 высоких",
+    riskTone: "red" as StatusTone,
     progress: 55,
     fte: "4,0 FTE",
     owner: "Мария Орлова",
@@ -176,10 +180,12 @@ const initiatives = [
     goal: "Сформировать продуктовое предложение ЦФА",
     metric: "Количество доступных продуктов",
     target: "4 продукта",
-    current: "1 продукт",
-    status: "Запланировано",
-    tone: "slate" as StatusTone,
-    progress: 25,
+    current: "4 продукта",
+    status: "Завершена",
+    tone: "green" as StatusTone,
+    risks: "Нет",
+    riskTone: "green" as StatusTone,
+    progress: 100,
     fte: "2,0 FTE",
     owner: "Илья Волков",
     team: "ЦФА и цифровые активы",
@@ -192,6 +198,8 @@ const initiatives = [
     metric: "Пройденные этапы интеграции",
     target: "5 этапов",
     current: "1 этап",
+    risks: "1 высокий",
+    riskTone: "red" as StatusTone,
     status: "Не начато",
     tone: "yellow" as StatusTone,
     progress: 20,
@@ -317,9 +325,9 @@ function StrategyPage({ onOpenInitiatives }: { onOpenInitiatives: () => void }) 
 function InitiativesTable({ items = initiatives }: { items?: readonly (typeof initiatives)[number][] }) {
   return (
     <div className="overflow-x-auto">
-      <Table>
-        <TableHeader><TableRow className="bg-slate-50/70 hover:bg-slate-50/70"><TableHead className="pl-5 text-xs text-slate-500">Инициатива</TableHead><TableHead className="text-xs text-slate-500">Стратегия</TableHead><TableHead className="text-xs text-slate-500">Ключевая метрика</TableHead><TableHead className="text-xs text-slate-500">Статус</TableHead><TableHead className="text-xs text-slate-500">Прогресс</TableHead><TableHead className="text-xs text-slate-500">Ресурс</TableHead><TableHead className="pr-5 text-xs text-slate-500">Владелец / команда</TableHead></TableRow></TableHeader>
-        <TableBody>{items.map((item) => <TableRow key={item.id} className="border-slate-100"><TableCell className="min-w-[230px] py-4 pl-5"><p className="font-medium text-slate-950">{item.title}</p><p className="mt-1 text-xs text-slate-400">{item.id}</p></TableCell><TableCell className="min-w-[230px]"><p className="text-xs font-medium leading-5 text-slate-700">{item.goal}</p></TableCell><TableCell className="min-w-[190px]"><p className="text-xs font-medium text-slate-700">{item.metric}</p><p className="mt-1 text-xs text-slate-400">Цель: {item.target} · Сейчас: {item.current}</p></TableCell><TableCell><StatusPill label={item.status} tone={item.tone} /></TableCell><TableCell className="min-w-[130px]"><div className="flex items-center gap-2"><Progress value={item.progress} className="h-1.5 w-16 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-800" /><span className="text-xs font-semibold text-slate-700">{item.progress}%</span></div></TableCell><TableCell><span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{item.fte}</span></TableCell><TableCell className="min-w-[180px] pr-5"><p className="text-xs font-medium text-slate-700">{item.owner}</p><p className="mt-1 text-xs text-slate-400">{item.team}</p></TableCell></TableRow>)}</TableBody>
+      <Table className="min-w-[1120px] table-fixed">
+        <TableHeader><TableRow className="bg-slate-50/70 hover:bg-slate-50/70"><TableHead className="w-[180px] pl-5 text-xs text-slate-500">Инициатива</TableHead><TableHead className="w-[170px] text-xs text-slate-500">Стратегия</TableHead><TableHead className="w-[185px] text-xs text-slate-500">Ключевая метрика</TableHead><TableHead className="w-[125px] text-xs text-slate-500">Статус</TableHead><TableHead className="w-[110px] text-xs text-slate-500">Прогресс</TableHead><TableHead className="w-[100px] text-xs text-slate-500">Риски</TableHead><TableHead className="w-[85px] text-xs text-slate-500">Ресурс</TableHead><TableHead className="w-[165px] pr-5 text-xs text-slate-500">Владелец / команда</TableHead></TableRow></TableHeader>
+        <TableBody>{items.map((item) => <TableRow key={item.id} className="border-slate-100 align-top"><TableCell className="whitespace-normal break-words py-4 pl-5"><p className="font-medium leading-5 text-slate-950">{item.title}</p><p className="mt-1 text-xs text-slate-400">{item.id}</p></TableCell><TableCell className="whitespace-normal break-words"><p className="text-xs font-medium leading-5 text-slate-700">{item.goal}</p></TableCell><TableCell className="whitespace-normal break-words"><p className="text-xs font-medium leading-5 text-slate-700">{item.metric}</p><p className="mt-1 text-xs leading-4 text-slate-400">Цель: {item.target}<br />Сейчас: {item.current}</p></TableCell><TableCell><StatusPill label={item.status} tone={item.tone} /></TableCell><TableCell><div className="flex items-center gap-2"><Progress value={item.progress} className="h-1.5 w-12 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-800" /><span className="text-xs font-semibold text-slate-700">{item.progress}%</span></div></TableCell><TableCell><StatusPill label={item.risks} tone={item.riskTone} /></TableCell><TableCell><span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{item.fte}</span></TableCell><TableCell className="whitespace-normal break-words pr-5"><p className="text-xs font-medium leading-5 text-slate-700">{item.owner}</p><p className="mt-1 text-xs leading-4 text-slate-400">{item.team}</p></TableCell></TableRow>)}</TableBody>
       </Table>
     </div>
   )
@@ -331,12 +339,12 @@ function InitiativesPage({ quarterIndex }: { quarterIndex: number }) {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={Rocket} label="Инициативы квартала" value="5" note="3 связаны с бизнес-направлениями" tone="blue" />
         <StatCard icon={Gauge} label="Средний прогресс" value="50%" note={quarters[quarterIndex].phase} tone="amber" />
-        <StatCard icon={AlertTriangle} label="Под риском" value="1" note="требует решения на QBR" tone="red" />
+        <StatCard icon={AlertTriangle} label="Приостановлено" value="1" note="есть два высоких риска" tone="red" />
         <StatCard icon={BriefcaseBusiness} label="Загрузка ресурсов" value="15 FTE" note="из 17 доступных" tone="violet" />
       </div>
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><h2 className="text-sm font-semibold text-slate-950">Портфель инициатив</h2><p className="mt-0.5 text-xs text-slate-500">Стратегия → цель → ключевая метрика → инициатива</p></div><div className="flex items-center gap-2 text-xs text-slate-500"><Link2 className="size-4" /> Все инициативы связаны с целями</div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><h2 className="text-sm font-semibold text-slate-950">Портфель инициатив</h2><p className="mt-0.5 text-xs text-slate-500">Стратегия → цель → ключевая метрика → инициатива</p></div><Button size="sm" className="bg-[#ef3e42] text-white hover:bg-[#d92f34]"><Plus />Добавить инициативу</Button></div>
         <InitiativesTable />
       </section>
     </main>
@@ -360,22 +368,21 @@ function QbrOverview({ quarterIndex, onOpenInitiatives }: { quarterIndex: number
   return (
     <main className="mx-auto w-full max-w-[1480px] p-4 md:p-7">
       <section className="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="grid xl:grid-cols-[minmax(0,1fr)_330px_330px]">
-          <div className="relative p-5 md:p-6">
-            <div className="absolute inset-y-0 left-0 w-1 bg-amber-400" />
-            <div className="flex items-start justify-between gap-5"><div className="max-w-3xl"><div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"><CircleDot className="size-3.5" /> Общий статус: требует внимания</span><span className="text-xs text-slate-400">{quarter.phase}</span></div><h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-950 md:text-2xl">Команда ускорила рост, но не достигла целевой конверсии</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Результаты квартала связаны со стратегическими целями и метриками. Основной риск — ресурс аналитики для инициативы миграции клиентских данных.</p></div><Button variant="ghost" size="icon-sm" className="text-slate-400" aria-label="Дополнительные действия"><MoreHorizontal /></Button></div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5"><p className="text-xs font-semibold text-amber-900">Ресурс не соответствует приоритету</p><p className="mt-1 text-xs leading-5 text-amber-800">Критичная инициатива IN-229 использует 4 FTE, но остается под риском.</p></div><div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5"><p className="text-xs font-semibold text-emerald-900">Связи заполнены</p><p className="mt-1 text-xs leading-5 text-emerald-800">Все инициативы связаны минимум с одной целью и метрикой.</p></div></div>
-          </div>
-          <div className="border-t border-slate-200 bg-slate-50/70 p-5 xl:border-l xl:border-t-0"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Готовность периода</p><span className="text-sm font-bold text-slate-950">{quarter.completion}%</span></div><Progress value={quarter.completion} className="mt-3 h-2 bg-slate-200 [&_[data-slot=progress-indicator]]:bg-[#ef3e42]" /><div className="mt-4 space-y-2 text-xs"><span className="flex items-center gap-1.5 text-emerald-700"><Check className="size-3.5" /> Связи заполнены</span><span className="flex items-center gap-1.5 text-amber-700"><AlertTriangle className="size-3.5" /> 2 замечания AI</span><span className="flex items-center gap-1.5 text-emerald-700"><Check className="size-3.5" /> Метрики обновлены</span></div></div>
-          <div className="border-t border-slate-200 p-5 xl:border-l xl:border-t-0"><div className="flex items-center gap-2"><div className="rounded-lg bg-violet-50 p-2 text-violet-700"><Bot className="size-4" /></div><div><h3 className="text-sm font-semibold text-slate-950">AI-проверка связности</h3><p className="text-xs text-slate-500">Стратегия → цели → инициативы</p></div><Sparkles className="ml-auto size-4 text-violet-500" /></div><button className="mt-4 flex w-full items-center justify-between rounded-xl border border-violet-100 bg-violet-50/60 p-3.5 text-left transition hover:bg-violet-50"><span><span className="block text-xs font-semibold text-violet-900">Сформировать резюме</span><span className="mt-1 block text-xs text-violet-700">Успехи, вопросы и решения</span></span><ArrowRight className="size-4 text-violet-600" /></button></div>
+        <div className="relative border-b border-slate-100 p-5 md:p-6">
+          <div className="absolute inset-y-0 left-0 w-1 bg-violet-500" />
+          <div className="w-full"><div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700"><Bot className="size-3.5" /> AI-обзор периода</span><span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"><CircleDot className="size-3.5" /> Требует внимания</span><span className="text-xs text-slate-400">{quarter.phase}</span></div><h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-950 md:text-2xl">Команда ускорила рост, но не достигла целевой конверсии</h2><p className="mt-2 w-full text-sm leading-6 text-slate-600">Рост использования терминала опережает план, цифровой онбординг приближается к целевой конверсии. Основной фокус QBR — снять ограничения по миграции клиентских данных и зафиксировать решения по аналитическому ресурсу.</p></div>
+        </div>
+        <div className="grid md:grid-cols-2">
+          <div className="bg-slate-50/70 p-5 md:p-6"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Готовность периода</p><span className="text-sm font-bold text-slate-950">{quarter.completion}%</span></div><Progress value={quarter.completion} className="mt-3 h-2 bg-slate-200 [&_[data-slot=progress-indicator]]:bg-[#ef3e42]" /><div className="mt-4 grid gap-2 text-xs sm:grid-cols-3"><span className="flex items-center gap-1.5 text-emerald-700"><Check className="size-3.5" /> Метрики обновлены</span><span className="flex items-center gap-1.5 text-emerald-700"><Check className="size-3.5" /> Достижения заполнены</span><span className="flex items-center gap-1.5 text-amber-700"><AlertTriangle className="size-3.5" /> 2 замечания AI</span></div></div>
+          <div className="border-t border-slate-200 p-5 md:border-l md:border-t-0 md:p-6"><div className="flex items-center gap-2"><div className="rounded-lg bg-violet-50 p-2 text-violet-700"><Sparkles className="size-4" /></div><div><h3 className="text-sm font-semibold text-slate-950">AI-проверка связности</h3><p className="text-xs text-slate-500">Стратегия → цели и метрики → инициативы</p></div></div><button className="mt-4 flex w-full items-center justify-between rounded-xl border border-violet-100 bg-violet-50/60 p-3.5 text-left transition hover:bg-violet-50"><span><span className="block text-xs font-semibold text-violet-900">Проверить данные и сформировать резюме</span><span className="mt-1 block text-xs text-violet-700">Успехи, вопросы и решения периода</span></span><ArrowRight className="size-4 text-violet-600" /></button></div>
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><StatCard icon={Target} label="Цели и метрики" value="3 из 4" note="одна требует внимания" tone="blue" /><StatCard icon={Rocket} label="Инициативы" value="4" note="одна под риском" tone="amber" /><StatCard icon={BriefcaseBusiness} label="Ресурс команды" value="11 FTE" note="задействовано в целях" tone="violet" /><StatCard icon={ListChecks} label="Открытые вопросы" value="3" note="требуют решений на QBR" tone="red" /></section>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><StatCard icon={Target} label="Цели и метрики" value="3 из 4" note="одна требует внимания" tone="blue" /><StatCard icon={Rocket} label="Инициативы" value="5" note="одна приостановлена" tone="amber" /><StatCard icon={BriefcaseBusiness} label="Ресурс команды" value="11 FTE" note="задействовано в целях" tone="violet" /><StatCard icon={ListChecks} label="Открытые вопросы" value="3" note="требуют решений на QBR" tone="red" /></section>
 
       <section className="mt-5 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><h3 className="text-sm font-semibold text-slate-950">Цели и метрики</h3><p className="mt-0.5 text-xs text-slate-500">Стратегия, план, факт и задействованный ресурс</p></div><Button variant="ghost" size="sm" className="text-slate-600">Все цели <ArrowRight /></Button></div><div className="overflow-x-auto"><Table><TableHeader><TableRow className="bg-slate-50/70 hover:bg-slate-50/70"><TableHead className="pl-5 text-xs text-slate-500">Метрика</TableHead><TableHead className="text-xs text-slate-500">Стратегия</TableHead><TableHead className="text-xs text-slate-500">План / факт</TableHead><TableHead className="text-xs text-slate-500">FTE</TableHead><TableHead className="pr-5 text-xs text-slate-500">Выполнение</TableHead></TableRow></TableHeader><TableBody>{metrics.map((metric) => <TableRow key={metric.name} className="border-slate-100"><TableCell className="min-w-[230px] py-3.5 pl-5"><div className="flex items-start gap-3"><StatusDot status={metric.status} /><div><p className="font-medium text-slate-900">{metric.name}</p><p className="mt-1 text-xs text-slate-400">{metric.initiatives} инициативы</p></div></div></TableCell><TableCell className="text-xs text-slate-600">{metric.strategy}</TableCell><TableCell><p className="text-xs text-slate-500">{metric.plan}</p><p className="font-semibold text-slate-950">{metric.fact} <span className="text-xs font-medium text-emerald-600">{metric.trend}</span></p></TableCell><TableCell><span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{metric.fte}</span></TableCell><TableCell className="min-w-[160px] pr-5"><div className="flex items-center gap-2"><Progress value={Math.min(metric.progress, 100)} className="h-1.5 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-800" /><span className="w-9 text-right text-xs font-semibold text-slate-700">{metric.progress}%</span></div></TableCell></TableRow>)}</TableBody></Table></div></section>
 
-      <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><div className="flex items-center gap-2"><Rocket className="size-4 text-[#ef3e42]" /><h3 className="text-sm font-semibold text-slate-950">Инициативы квартала</h3></div><p className="mt-1 text-xs text-slate-500">Конкретные работы, обеспечивающие достижение целей и метрик</p></div><Button onClick={onOpenInitiatives} variant="outline" size="sm">Открыть портфель <ArrowRight /></Button></div><InitiativesTable items={initiatives.slice(0, 4)} /></section>
+      <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><div className="flex items-center gap-2"><Rocket className="size-4 text-[#ef3e42]" /><h3 className="text-sm font-semibold text-slate-950">Инициативы квартала</h3></div><p className="mt-1 text-xs text-slate-500">Стратегия, ключевая метрика, статус, риски и ресурс</p></div><Button onClick={onOpenInitiatives} variant="outline" size="sm">Открыть портфель <ArrowRight /></Button></div><InitiativesTable /></section>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-3"><section className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center gap-2"><CheckCircle2 className="size-4 text-emerald-600" /><h3 className="text-sm font-semibold">Главные достижения</h3></div><p className="mt-4 text-sm leading-6 text-slate-600">Новый онбординг повысил конверсию первого шага на 12%; доступность достигла 99,97%.</p></section><section className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center gap-2"><Flag className="size-4 text-rose-600" /><h3 className="text-sm font-semibold">Вопросы к QBR</h3></div><p className="mt-4 text-sm leading-6 text-slate-600">Зависимость от Data Platform и дефицит аналитического ресурса требуют обсуждения на встрече.</p></section><section className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center gap-2"><Lightbulb className="size-4 text-violet-600" /><h3 className="text-sm font-semibold">Зафиксированные решения</h3></div><p className="mt-4 text-sm leading-6 text-slate-600">Автоматизация получила приоритет P1; решение по дополнительному аналитику ожидает QBR.</p></section></div>
     </main>
@@ -410,7 +417,7 @@ export default function Home() {
       </Sidebar>
 
       <SidebarInset className="min-w-0 bg-[#f5f7fa]">
-        <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur md:px-7"><div className="flex min-w-0 items-center gap-3"><SidebarTrigger className="md:hidden" /><div className="min-w-0"><h1 className="truncate text-sm font-semibold text-slate-950 md:text-base">{pageTitle}</h1><p className="truncate text-xs text-slate-500">{pageSubtitle}</p></div></div><div className="flex shrink-0 items-center gap-2">{(globalPage === "Мои QBR" || globalPage === "Инициативы") && <QuarterSwitcher index={quarterIndex} onChange={setQuarterIndex} />}{globalPage === "Мои QBR" && <><div className="hidden items-center rounded-lg bg-slate-100 p-1 xl:flex">{["Подготовка", "Ревью", "Итоги"].map((item) => <button key={item} onClick={() => setMode(item)} className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${mode === item ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}>{item}</button>)}</div><Button onClick={advanceMode} size="sm" className="hidden bg-[#ef3e42] text-white hover:bg-[#d92f34] sm:flex">{mode === "Подготовка" ? "Завершить подготовку" : mode === "Ревью" ? "Зафиксировать итоги" : "Экспорт PDF"}{mode === "Итоги" ? <FileText /> : <ArrowRight />}</Button></>}{globalPage === "Инициативы" && <Button size="sm" className="hidden bg-[#ef3e42] text-white hover:bg-[#d92f34] sm:flex"><Plus />Добавить инициативу</Button>}{globalPage === "Стратегия" && <Button variant="outline" size="sm" asChild className="hidden sm:flex"><a href="https://www.moex.com/files/4g62xymgykeh5zb9r40newqv42" target="_blank" rel="noreferrer">Источник <ExternalLink /></a></Button>}</div></header>
+        <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur md:px-7"><div className="flex min-w-0 items-center gap-3"><SidebarTrigger className="md:hidden" /><div className="min-w-0"><h1 className="truncate text-sm font-semibold text-slate-950 md:text-base">{pageTitle}</h1><p className="truncate text-xs text-slate-500">{pageSubtitle}</p></div></div><div className="flex shrink-0 items-center gap-2">{(globalPage === "Мои QBR" || globalPage === "Инициативы") && <QuarterSwitcher index={quarterIndex} onChange={setQuarterIndex} />}{globalPage === "Мои QBR" && <><div className="hidden items-center rounded-lg bg-slate-100 p-1 xl:flex">{["Подготовка", "Ревью", "Итоги"].map((item) => <button key={item} onClick={() => setMode(item)} className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${mode === item ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}>{item}</button>)}</div><Button onClick={advanceMode} size="sm" className="hidden bg-[#ef3e42] text-white hover:bg-[#d92f34] sm:flex">{mode === "Подготовка" ? "Завершить подготовку" : mode === "Ревью" ? "Зафиксировать итоги" : "Экспорт PDF"}{mode === "Итоги" ? <FileText /> : <ArrowRight />}</Button></>}{globalPage === "Стратегия" && <Button variant="outline" size="sm" asChild className="hidden sm:flex"><a href="https://www.moex.com/files/4g62xymgykeh5zb9r40newqv42" target="_blank" rel="noreferrer">Источник <ExternalLink /></a></Button>}</div></header>
 
         {globalPage === "Стратегия" && <StrategyPage onOpenInitiatives={() => setGlobalPage("Инициативы")} />}
         {globalPage === "Инициативы" && <InitiativesPage quarterIndex={quarterIndex} />}
