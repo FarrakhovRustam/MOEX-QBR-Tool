@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDot,
+  Database,
   ExternalLink,
   FileText,
   Flag,
@@ -19,16 +20,35 @@ import {
   LayoutDashboard,
   Lightbulb,
   ListChecks,
+  Pencil,
   Plus,
   Rocket,
+  ShieldAlert,
   Sparkles,
   Target,
-  TrendingUp,
+  Trash2,
   Users,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Sidebar,
   SidebarContent,
@@ -53,9 +73,42 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
 
 type GlobalPage = "Стратегия" | "Инициативы" | "Мои QBR" | "Команды"
 type StatusTone = "green" | "yellow" | "red" | "blue" | "slate"
+type RiskLevel = "high" | "medium" | "low"
+type InitiativeRisk = { id: string; level: RiskLevel; description: string }
+type InitiativeItem = {
+  id: string
+  title: string
+  strategy: string
+  goal: string
+  metric: string
+  linkedMetric: string
+  target: string
+  current: string
+  status: string
+  tone: StatusTone
+  progress: number
+  owner: string
+  team: string
+  employees: string[]
+  risks: InitiativeRisk[]
+}
+type MetricItem = {
+  id: string
+  name: string
+  strategy: string
+  goal: string
+  plan: string
+  fact: string
+  progress: number
+  status: "green" | "yellow" | "red"
+  trend: string
+  initiatives: number
+  source: string
+}
 
 const quarters = [
   { label: "II квартал 2026", short: "II кв. 2026", phase: "Итоги зафиксированы", completion: 100 },
@@ -121,23 +174,25 @@ const strategyDirections = [
   },
 ] as const
 
-const initiatives = [
+const employeeDirectory = ["Анна Смирнова", "Алексей Иванов", "Мария Орлова", "Илья Волков", "Дмитрий Соколов", "Елена Петрова", "Сергей Ким", "Ольга Морозова", "Никита Лебедев"]
+
+const initiatives: InitiativeItem[] = [
   {
     id: "IN-241",
     title: "AI-аналитика в торговом терминале",
     strategy: "Активное вовлечение конечного клиента",
     goal: "Увеличить регулярное использование терминала",
     metric: "Активные пользователи терминала",
+    linkedMetric: "Активные пользователи терминала",
     target: "1 000 клиентов",
     current: "680 клиентов",
-    risks: "1 средний",
-    riskTone: "yellow" as StatusTone,
     status: "В работе",
-    tone: "blue" as StatusTone,
+    tone: "blue",
     progress: 68,
-    fte: "3,0 FTE",
     owner: "Анна Смирнова",
     team: "AI-агенты",
+    employees: ["Анна Смирнова", "Елена Петрова", "Сергей Ким"],
+    risks: [{ id: "R-101", level: "medium", description: "Задержка поставки данных для рекомендательной модели" }],
   },
   {
     id: "IN-237",
@@ -145,16 +200,16 @@ const initiatives = [
     strategy: "Активное вовлечение конечного клиента",
     goal: "Повысить конверсию в целевое действие",
     metric: "Конверсия в целевое действие",
+    linkedMetric: "Конверсия в целевое действие",
     target: "18%",
     current: "14,8%",
-    risks: "Нет",
-    riskTone: "green" as StatusTone,
     status: "В работе",
-    tone: "blue" as StatusTone,
+    tone: "blue",
     progress: 82,
-    fte: "2,5 FTE",
     owner: "Алексей Иванов",
     team: "Регистрация и онбординг",
+    employees: ["Алексей Иванов", "Ольга Морозова"],
+    risks: [{ id: "R-102", level: "low", description: "Незначительная задержка согласования текстов" }],
   },
   {
     id: "IN-229",
@@ -162,16 +217,20 @@ const initiatives = [
     strategy: "Катализатор · Современные технологии",
     goal: "Сократить запуск продуктового эксперимента",
     metric: "Мигрированные витрины",
+    linkedMetric: "Время запуска эксперимента",
     target: "20 витрин",
     current: "11 витрин",
     status: "Приостановлена",
-    tone: "red" as StatusTone,
-    risks: "2 высоких",
-    riskTone: "red" as StatusTone,
+    tone: "red",
     progress: 55,
-    fte: "4,0 FTE",
     owner: "Мария Орлова",
     team: "Data Platform",
+    employees: ["Мария Орлова", "Сергей Ким", "Никита Лебедев", "Елена Петрова"],
+    risks: [
+      { id: "R-103", level: "high", description: "Не согласовано окно миграции" },
+      { id: "R-104", level: "high", description: "Недостаточно аналитического ресурса" },
+      { id: "R-105", level: "medium", description: "Зависимость от Data Platform" },
+    ],
   },
   {
     id: "IN-245",
@@ -179,16 +238,16 @@ const initiatives = [
     strategy: "Активное вовлечение конечного клиента",
     goal: "Сформировать продуктовое предложение ЦФА",
     metric: "Количество доступных продуктов",
+    linkedMetric: "Конверсия в целевое действие",
     target: "4 продукта",
     current: "4 продукта",
     status: "Завершена",
-    tone: "green" as StatusTone,
-    risks: "Нет",
-    riskTone: "green" as StatusTone,
+    tone: "green",
     progress: 100,
-    fte: "2,0 FTE",
     owner: "Илья Волков",
     team: "ЦФА и цифровые активы",
+    employees: ["Илья Волков", "Ольга Морозова"],
+    risks: [],
   },
   {
     id: "IN-251",
@@ -196,25 +255,30 @@ const initiatives = [
     strategy: "Международный доступ",
     goal: "Построить технологический линк с ЕАЭС",
     metric: "Пройденные этапы интеграции",
+    linkedMetric: "Доступность сервиса",
     target: "5 этапов",
     current: "1 этап",
-    risks: "1 высокий",
-    riskTone: "red" as StatusTone,
     status: "Не начато",
-    tone: "yellow" as StatusTone,
+    tone: "yellow",
     progress: 20,
-    fte: "3,5 FTE",
     owner: "Дмитрий Соколов",
     team: "Международная интеграция",
+    employees: ["Дмитрий Соколов", "Никита Лебедев", "Елена Петрова"],
+    risks: [
+      { id: "R-106", level: "high", description: "Не согласованы требования внешнего участника" },
+      { id: "R-107", level: "low", description: "Возможна корректировка календарного плана" },
+    ],
   },
-] as const
+]
 
-const metrics = [
-  { name: "Активные пользователи терминала", strategy: "Вовлечение клиента", plan: "50 тыс.", fact: "52,4 тыс.", progress: 105, status: "green", trend: "+22%", fte: "3,0", initiatives: 1 },
-  { name: "Конверсия в целевое действие", strategy: "Вовлечение клиента", plan: "18%", fact: "16,3%", progress: 91, status: "yellow", trend: "+2,2 п.п.", fte: "2,5", initiatives: 1 },
-  { name: "Время запуска эксперимента", strategy: "Современные технологии", plan: "7 дней", fact: "9 дней", progress: 78, status: "red", trend: "−17%", fte: "4,0", initiatives: 1 },
-  { name: "Доступность сервиса", strategy: "Современные технологии", plan: "99,95%", fact: "99,97%", progress: 100, status: "green", trend: "+0,06 п.п.", fte: "1,5", initiatives: 2 },
-] as const
+const strategicMetrics: MetricItem[] = [
+  { id: "M-101", name: "Активные пользователи терминала", strategy: "Активное вовлечение конечного клиента", goal: "Увеличить регулярное использование терминала", plan: "50 тыс.", fact: "52,4 тыс.", progress: 105, status: "green", trend: "+22%", initiatives: 1, source: "DWH" },
+  { id: "M-102", name: "Конверсия в целевое действие", strategy: "Активное вовлечение конечного клиента", goal: "Повысить конверсию в целевое действие", plan: "18%", fact: "16,3%", progress: 91, status: "yellow", trend: "+2,2 п.п.", initiatives: 2, source: "Вручную" },
+  { id: "M-103", name: "Время запуска эксперимента", strategy: "Современные технологии", goal: "Сократить запуск продуктового эксперимента", plan: "7 дней", fact: "9 дней", progress: 78, status: "red", trend: "−17%", initiatives: 1, source: "BI-витрина" },
+  { id: "M-104", name: "Доступность сервиса", strategy: "Современные технологии", goal: "Повысить надежность клиентских сервисов", plan: "99,95%", fact: "99,97%", progress: 100, status: "green", trend: "+0,06 п.п.", initiatives: 1, source: "Мониторинг" },
+  { id: "M-105", name: "Новые эмитенты на платформе", strategy: "Развитие рынков капитала", goal: "Увеличить число активных эмитентов", plan: "24", fact: "18", progress: 75, status: "yellow", trend: "+4", initiatives: 0, source: "Вручную" },
+  { id: "M-106", name: "Доля автоматизированных операций", strategy: "Современные технологии", goal: "Снизить операционную нагрузку", plan: "65%", fact: "58%", progress: 89, status: "yellow", trend: "+8 п.п.", initiatives: 0, source: "DWH" },
+]
 
 const reviewSections = ["Обзор", "Вопросы и решения"]
 
@@ -256,10 +320,10 @@ function StatCard({ icon: Icon, label, value, note, tone }: { icon: typeof Targe
 
 function QuarterSwitcher({ index, onChange }: { index: number; onChange: (index: number) => void }) {
   return (
-    <div className="flex items-center rounded-lg border border-slate-200 bg-white shadow-sm">
-      <button onClick={() => onChange(index - 1)} disabled={index === 0} className="grid size-8 place-items-center text-slate-500 transition hover:bg-slate-50 disabled:opacity-30" aria-label="Предыдущий квартал"><ChevronLeft className="size-4" /></button>
-      <div className="min-w-[112px] border-x border-slate-200 px-3 text-center text-xs font-semibold text-slate-800">{quarters[index].short}</div>
-      <button onClick={() => onChange(index + 1)} disabled={index === quarters.length - 1} className="grid size-8 place-items-center text-slate-500 transition hover:bg-slate-50 disabled:opacity-30" aria-label="Следующий квартал"><ChevronRight className="size-4" /></button>
+    <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-white shadow-sm">
+      <button onClick={() => onChange(index - 1)} disabled={index === 0} className="grid size-11 place-items-center rounded-l-xl text-slate-600 transition hover:bg-slate-50 disabled:opacity-30" aria-label="Предыдущий квартал"><ChevronLeft className="size-5" /></button>
+      <div className="grid h-full min-w-[148px] place-items-center border-x border-slate-200 px-4 text-center text-sm font-semibold text-slate-900">{quarters[index].short}</div>
+      <button onClick={() => onChange(index + 1)} disabled={index === quarters.length - 1} className="grid size-11 place-items-center rounded-r-xl text-slate-600 transition hover:bg-slate-50 disabled:opacity-30" aria-label="Следующий квартал"><ChevronRight className="size-5" /></button>
     </div>
   )
 }
@@ -322,30 +386,43 @@ function StrategyPage({ onOpenInitiatives }: { onOpenInitiatives: () => void }) 
   )
 }
 
-function InitiativesTable({ items = initiatives }: { items?: readonly (typeof initiatives)[number][] }) {
+function RiskCounters({ risks }: { risks: InitiativeRisk[] }) {
+  const levels: { key: RiskLevel; label: string; className: string }[] = [
+    { key: "high", label: "Высокий", className: "bg-rose-100 text-rose-700 ring-rose-300" },
+    { key: "medium", label: "Средний", className: "bg-amber-100 text-amber-700 ring-amber-300" },
+    { key: "low", label: "Низкий", className: "bg-emerald-100 text-emerald-700 ring-emerald-300" },
+  ]
+  const active = levels.map((level) => ({ ...level, count: risks.filter((risk) => risk.level === level.key).length })).filter((level) => level.count > 0)
+  if (!active.length) return <span className="grid size-7 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 ring-1 ring-inset ring-slate-200" title="Рисков нет">0</span>
+  return <div className="flex flex-wrap gap-1.5">{active.map((level) => <span key={level.key} className={`grid size-7 place-items-center rounded-full text-xs font-bold ring-1 ring-inset ${level.className}`} title={`${level.label}: ${level.count}`} aria-label={`${level.label}: ${level.count}`}>{level.count}</span>)}</div>
+}
+
+function InitiativesTable({ items, editable = false, onRemove, onEditFte, onAddRisk }: { items: InitiativeItem[]; editable?: boolean; onRemove?: (id: string) => void; onEditFte?: (id: string) => void; onAddRisk?: (id: string) => void }) {
   return (
     <div className="overflow-x-auto">
-      <Table className="min-w-[1120px] table-fixed">
-        <TableHeader><TableRow className="bg-slate-50/70 hover:bg-slate-50/70"><TableHead className="w-[180px] pl-5 text-xs text-slate-500">Инициатива</TableHead><TableHead className="w-[170px] text-xs text-slate-500">Стратегия</TableHead><TableHead className="w-[185px] text-xs text-slate-500">Ключевая метрика</TableHead><TableHead className="w-[125px] text-xs text-slate-500">Статус</TableHead><TableHead className="w-[110px] text-xs text-slate-500">Прогресс</TableHead><TableHead className="w-[100px] text-xs text-slate-500">Риски</TableHead><TableHead className="w-[85px] text-xs text-slate-500">Ресурс</TableHead><TableHead className="w-[165px] pr-5 text-xs text-slate-500">Владелец / команда</TableHead></TableRow></TableHeader>
-        <TableBody>{items.map((item) => <TableRow key={item.id} className="border-slate-100 align-top"><TableCell className="whitespace-normal break-words py-4 pl-5"><p className="font-medium leading-5 text-slate-950">{item.title}</p><p className="mt-1 text-xs text-slate-400">{item.id}</p></TableCell><TableCell className="whitespace-normal break-words"><p className="text-xs font-medium leading-5 text-slate-700">{item.goal}</p></TableCell><TableCell className="whitespace-normal break-words"><p className="text-xs font-medium leading-5 text-slate-700">{item.metric}</p><p className="mt-1 text-xs leading-4 text-slate-400">Цель: {item.target}<br />Сейчас: {item.current}</p></TableCell><TableCell><StatusPill label={item.status} tone={item.tone} /></TableCell><TableCell><div className="flex items-center gap-2"><Progress value={item.progress} className="h-1.5 w-12 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-800" /><span className="text-xs font-semibold text-slate-700">{item.progress}%</span></div></TableCell><TableCell><StatusPill label={item.risks} tone={item.riskTone} /></TableCell><TableCell><span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{item.fte}</span></TableCell><TableCell className="whitespace-normal break-words pr-5"><p className="text-xs font-medium leading-5 text-slate-700">{item.owner}</p><p className="mt-1 text-xs leading-4 text-slate-400">{item.team}</p></TableCell></TableRow>)}</TableBody>
+      <Table className={`table-fixed ${editable ? "min-w-[1260px]" : "min-w-[1160px]"}`}>
+        <TableHeader><TableRow className="bg-slate-50/70 hover:bg-slate-50/70"><TableHead className="w-[180px] pl-5 text-xs text-slate-500">Инициатива</TableHead><TableHead className="w-[165px] text-xs text-slate-500">Стратегия</TableHead><TableHead className="w-[180px] text-xs text-slate-500">Ключевая метрика</TableHead><TableHead className="w-[125px] text-xs text-slate-500">Статус</TableHead><TableHead className="w-[105px] text-xs text-slate-500">Прогресс</TableHead><TableHead className="w-[105px] text-xs text-slate-500">Риски</TableHead><TableHead className="w-[105px] text-xs text-slate-500">FTE</TableHead><TableHead className="w-[165px] pr-5 text-xs text-slate-500">Владелец / команда</TableHead>{editable && <TableHead className="w-[115px] pr-5 text-right text-xs text-slate-500">Действия</TableHead>}</TableRow></TableHeader>
+        <TableBody>{items.map((item) => <TableRow key={item.id} className="border-slate-100 align-top"><TableCell className="whitespace-normal break-words py-4 pl-5"><p className="font-medium leading-5 text-slate-950">{item.title}</p><p className="mt-1 text-xs text-slate-400">{item.id}</p></TableCell><TableCell className="whitespace-normal break-words"><p className="text-xs font-medium leading-5 text-slate-700">{item.goal}</p></TableCell><TableCell className="whitespace-normal break-words"><p className="text-xs font-medium leading-5 text-slate-700">{item.metric}</p><p className="mt-1 text-xs leading-4 text-slate-400">Цель: {item.target}<br />Сейчас: {item.current}</p></TableCell><TableCell><StatusPill label={item.status} tone={item.tone} /></TableCell><TableCell><div className="flex items-center gap-2"><Progress value={item.progress} className="h-1.5 w-12 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-800" /><span className="text-xs font-semibold text-slate-700">{item.progress}%</span></div></TableCell><TableCell><div className="flex items-center gap-1.5"><RiskCounters risks={item.risks} />{editable && <Button onClick={() => onAddRisk?.(item.id)} variant="ghost" size="icon-sm" className="size-7 text-slate-500" aria-label="Добавить риск"><Plus className="size-3.5" /></Button>}</div></TableCell><TableCell><div className="flex items-center gap-1"><span className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">{item.employees.length},0</span>{editable && <Button onClick={() => onEditFte?.(item.id)} variant="ghost" size="icon-sm" className="size-7 text-slate-500" aria-label="Изменить состав"><Pencil className="size-3.5" /></Button>}</div></TableCell><TableCell className="whitespace-normal break-words pr-5"><p className="text-xs font-medium leading-5 text-slate-700">{item.owner}</p><p className="mt-1 text-xs leading-4 text-slate-400">{item.team}</p></TableCell>{editable && <TableCell className="pr-5 text-right"><Button onClick={() => onRemove?.(item.id)} variant="ghost" size="icon-sm" className="text-slate-400 hover:text-rose-600" aria-label="Удалить инициативу из QBR"><Trash2 className="size-4" /></Button></TableCell>}</TableRow>)}</TableBody>
       </Table>
     </div>
   )
 }
 
-function InitiativesPage({ quarterIndex }: { quarterIndex: number }) {
+function InitiativesPage({ quarterIndex, items }: { quarterIndex: number; items: InitiativeItem[] }) {
+  const averageProgress = Math.round(items.reduce((sum, item) => sum + item.progress, 0) / Math.max(items.length, 1))
+  const totalFte = items.reduce((sum, item) => sum + item.employees.length, 0)
   return (
     <main className="mx-auto w-full max-w-[1480px] p-4 md:p-7">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Rocket} label="Инициативы квартала" value="5" note="3 связаны с бизнес-направлениями" tone="blue" />
-        <StatCard icon={Gauge} label="Средний прогресс" value="50%" note={quarters[quarterIndex].phase} tone="amber" />
+        <StatCard icon={Rocket} label="Инициативы квартала" value={`${items.length}`} note="3 связаны с бизнес-направлениями" tone="blue" />
+        <StatCard icon={Gauge} label="Средний прогресс" value={`${averageProgress}%`} note={quarters[quarterIndex].phase} tone="amber" />
         <StatCard icon={AlertTriangle} label="Приостановлено" value="1" note="есть два высоких риска" tone="red" />
-        <StatCard icon={BriefcaseBusiness} label="Загрузка ресурсов" value="15 FTE" note="из 17 доступных" tone="violet" />
+        <StatCard icon={BriefcaseBusiness} label="Загрузка ресурсов" value={`${totalFte} FTE`} note="по составу инициатив" tone="violet" />
       </div>
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><h2 className="text-sm font-semibold text-slate-950">Портфель инициатив</h2><p className="mt-0.5 text-xs text-slate-500">Стратегия → цель → ключевая метрика → инициатива</p></div><Button size="sm" className="bg-[#ef3e42] text-white hover:bg-[#d92f34]"><Plus />Добавить инициативу</Button></div>
-        <InitiativesTable />
+        <InitiativesTable items={items} />
       </section>
     </main>
   )
@@ -363,8 +440,54 @@ function SectionWorkspace({ section }: { section: keyof typeof workspaceData }) 
   )
 }
 
-function QbrOverview({ quarterIndex, onOpenInitiatives }: { quarterIndex: number; onOpenInitiatives: () => void }) {
+function MetricsTable({ items, initiatives: linkedInitiatives, editable, onPlanChange, onFactChange, onSourceChange, onRemove }: { items: MetricItem[]; initiatives: InitiativeItem[]; editable: boolean; onPlanChange: (id: string, value: string) => void; onFactChange: (id: string, value: string) => void; onSourceChange: (id: string, value: string) => void; onRemove: (id: string) => void }) {
+  return (
+    <div className="overflow-x-auto">
+      <Table className={`table-fixed ${editable ? "min-w-[1140px]" : "min-w-[980px]"}`}>
+        <TableHeader><TableRow className="bg-slate-50/70 hover:bg-slate-50/70"><TableHead className="w-[220px] pl-5 text-xs text-slate-500">Метрика</TableHead><TableHead className="w-[210px] text-xs text-slate-500">Стратегическая цель</TableHead><TableHead className="w-[125px] text-xs text-slate-500">Цель</TableHead><TableHead className="w-[135px] text-xs text-slate-500">Факт</TableHead><TableHead className="w-[150px] text-xs text-slate-500">Источник</TableHead><TableHead className="w-[105px] text-xs text-slate-500">Риски</TableHead><TableHead className="w-[145px] pr-5 text-xs text-slate-500">Выполнение</TableHead>{editable && <TableHead className="w-[70px] pr-5 text-right text-xs text-slate-500">Удалить</TableHead>}</TableRow></TableHeader>
+        <TableBody>{items.map((metric) => {
+          const inheritedRisks = linkedInitiatives.filter((initiative) => initiative.linkedMetric === metric.name).flatMap((initiative) => initiative.risks)
+          return <TableRow key={metric.id} className="border-slate-100 align-top"><TableCell className="whitespace-normal py-3.5 pl-5"><div className="flex items-start gap-3"><StatusDot status={metric.status} /><div><p className="font-medium leading-5 text-slate-900">{metric.name}</p><p className="mt-1 text-xs text-slate-400">{linkedInitiatives.filter((initiative) => initiative.linkedMetric === metric.name).length} инициативы</p></div></div></TableCell><TableCell className="whitespace-normal text-xs leading-5 text-slate-600"><p className="font-medium text-slate-700">{metric.goal}</p><p className="mt-1 text-slate-400">{metric.strategy}</p></TableCell><TableCell>{editable ? <Input value={metric.plan} onChange={(event) => onPlanChange(metric.id, event.target.value)} className="h-8 text-xs" aria-label={`Целевое значение ${metric.name}`} /> : <span className="text-sm font-semibold text-slate-900">{metric.plan}</span>}</TableCell><TableCell>{editable ? <Input value={metric.fact} onChange={(event) => onFactChange(metric.id, event.target.value)} className="h-8 text-xs" aria-label={`Фактическое значение ${metric.name}`} /> : <div><p className="font-semibold text-slate-950">{metric.fact}</p><p className="mt-1 text-xs font-medium text-emerald-600">{metric.trend}</p></div>}</TableCell><TableCell>{editable ? <Select value={metric.source} onValueChange={(value) => onSourceChange(metric.id, value)}><SelectTrigger size="sm" className="w-full text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Вручную">Вручную</SelectItem><SelectItem value="DWH">DWH</SelectItem><SelectItem value="BI-витрина">BI-витрина</SelectItem><SelectItem value="Мониторинг">Мониторинг</SelectItem><SelectItem value="Файл AdHoc">Файл AdHoc</SelectItem></SelectContent></Select> : <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"><Database className="size-3.5" />{metric.source}</span>}</TableCell><TableCell><RiskCounters risks={inheritedRisks} /></TableCell><TableCell className="pr-5"><div className="flex items-center gap-2"><Progress value={Math.min(metric.progress, 100)} className="h-1.5 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-800" /><span className="w-9 text-right text-xs font-semibold text-slate-700">{metric.progress}%</span></div></TableCell>{editable && <TableCell className="pr-5 text-right"><Button onClick={() => onRemove(metric.id)} variant="ghost" size="icon-sm" className="text-slate-400 hover:text-rose-600" aria-label="Удалить метрику из QBR"><Trash2 className="size-4" /></Button></TableCell>}</TableRow>
+        })}</TableBody>
+      </Table>
+    </div>
+  )
+}
+
+function QbrOverview({ quarterIndex, mode, metricItems, setMetricItems, initiativeItems, setInitiativeItems, qbrInitiativeIds, setQbrInitiativeIds, onOpenInitiatives }: { quarterIndex: number; mode: string; metricItems: MetricItem[]; setMetricItems: (items: MetricItem[]) => void; initiativeItems: InitiativeItem[]; setInitiativeItems: (items: InitiativeItem[]) => void; qbrInitiativeIds: string[]; setQbrInitiativeIds: (ids: string[]) => void; onOpenInitiatives: () => void }) {
   const quarter = quarters[quarterIndex]
+  const editable = mode === "Подготовка"
+  const selectedInitiatives = initiativeItems.filter((initiative) => qbrInitiativeIds.includes(initiative.id))
+  const availableMetrics = strategicMetrics.filter((metric) => !metricItems.some((item) => item.id === metric.id))
+  const availableInitiatives = initiativeItems.filter((initiative) => !qbrInitiativeIds.includes(initiative.id))
+  const [metricDialogOpen, setMetricDialogOpen] = useState(false)
+  const [initiativeDialogOpen, setInitiativeDialogOpen] = useState(false)
+  const [peopleInitiativeId, setPeopleInitiativeId] = useState<string | null>(null)
+  const [riskInitiativeId, setRiskInitiativeId] = useState<string | null>(null)
+  const [metricDraftId, setMetricDraftId] = useState("")
+  const [metricTargetDraft, setMetricTargetDraft] = useState("")
+  const [metricFactDraft, setMetricFactDraft] = useState("")
+  const [riskLevel, setRiskLevel] = useState<RiskLevel>("medium")
+  const [riskDescription, setRiskDescription] = useState("")
+
+  const updateMetric = (id: string, patch: Partial<MetricItem>) => setMetricItems(metricItems.map((metric) => metric.id === id ? { ...metric, ...patch } : metric))
+  const addMetric = () => {
+    const catalogMetric = strategicMetrics.find((metric) => metric.id === metricDraftId)
+    if (!catalogMetric) return
+    setMetricItems([...metricItems, { ...catalogMetric, plan: metricTargetDraft || catalogMetric.plan, fact: metricFactDraft || catalogMetric.fact }])
+    setMetricDialogOpen(false)
+    setMetricDraftId("")
+  }
+  const toggleEmployee = (initiativeId: string, employee: string) => setInitiativeItems(initiativeItems.map((initiative) => initiative.id !== initiativeId ? initiative : { ...initiative, employees: initiative.employees.includes(employee) ? initiative.employees.filter((person) => person !== employee) : [...initiative.employees, employee] }))
+  const addRisk = () => {
+    if (!riskInitiativeId || !riskDescription.trim()) return
+    setInitiativeItems(initiativeItems.map((initiative) => initiative.id !== riskInitiativeId ? initiative : { ...initiative, risks: [...initiative.risks, { id: `R-${Date.now()}`, level: riskLevel, description: riskDescription.trim() }] }))
+    setRiskInitiativeId(null)
+    setRiskDescription("")
+    setRiskLevel("medium")
+  }
+  const peopleInitiative = initiativeItems.find((initiative) => initiative.id === peopleInitiativeId)
+  const riskInitiative = initiativeItems.find((initiative) => initiative.id === riskInitiativeId)
   return (
     <main className="mx-auto w-full max-w-[1480px] p-4 md:p-7">
       <section className="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -378,13 +501,47 @@ function QbrOverview({ quarterIndex, onOpenInitiatives }: { quarterIndex: number
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><StatCard icon={Target} label="Цели и метрики" value="3 из 4" note="одна требует внимания" tone="blue" /><StatCard icon={Rocket} label="Инициативы" value="5" note="одна приостановлена" tone="amber" /><StatCard icon={BriefcaseBusiness} label="Ресурс команды" value="11 FTE" note="задействовано в целях" tone="violet" /><StatCard icon={ListChecks} label="Открытые вопросы" value="3" note="требуют решений на QBR" tone="red" /></section>
+      {editable && <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800"><Pencil className="size-4" /><span className="font-semibold">Режим подготовки:</span><span>добавляйте метрики и инициативы, обновляйте фактические значения, состав и риски.</span></div>}
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><StatCard icon={Target} label="Цели и метрики" value={`${metricItems.length}`} note="включено в QBR" tone="blue" /><StatCard icon={Rocket} label="Инициативы" value={`${selectedInitiatives.length}`} note="включено в QBR" tone="amber" /><StatCard icon={BriefcaseBusiness} label="Ресурс инициатив" value={`${selectedInitiatives.reduce((sum, item) => sum + item.employees.length, 0)} FTE`} note="по составу команд" tone="violet" /><StatCard icon={ListChecks} label="Открытые вопросы" value="3" note="требуют решений на QBR" tone="red" /></section>
 
-      <section className="mt-5 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><h3 className="text-sm font-semibold text-slate-950">Цели и метрики</h3><p className="mt-0.5 text-xs text-slate-500">Стратегия, план, факт и задействованный ресурс</p></div><Button variant="ghost" size="sm" className="text-slate-600">Все цели <ArrowRight /></Button></div><div className="overflow-x-auto"><Table><TableHeader><TableRow className="bg-slate-50/70 hover:bg-slate-50/70"><TableHead className="pl-5 text-xs text-slate-500">Метрика</TableHead><TableHead className="text-xs text-slate-500">Стратегия</TableHead><TableHead className="text-xs text-slate-500">План / факт</TableHead><TableHead className="text-xs text-slate-500">FTE</TableHead><TableHead className="pr-5 text-xs text-slate-500">Выполнение</TableHead></TableRow></TableHeader><TableBody>{metrics.map((metric) => <TableRow key={metric.name} className="border-slate-100"><TableCell className="min-w-[230px] py-3.5 pl-5"><div className="flex items-start gap-3"><StatusDot status={metric.status} /><div><p className="font-medium text-slate-900">{metric.name}</p><p className="mt-1 text-xs text-slate-400">{metric.initiatives} инициативы</p></div></div></TableCell><TableCell className="text-xs text-slate-600">{metric.strategy}</TableCell><TableCell><p className="text-xs text-slate-500">{metric.plan}</p><p className="font-semibold text-slate-950">{metric.fact} <span className="text-xs font-medium text-emerald-600">{metric.trend}</span></p></TableCell><TableCell><span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{metric.fte}</span></TableCell><TableCell className="min-w-[160px] pr-5"><div className="flex items-center gap-2"><Progress value={Math.min(metric.progress, 100)} className="h-1.5 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-800" /><span className="w-9 text-right text-xs font-semibold text-slate-700">{metric.progress}%</span></div></TableCell></TableRow>)}</TableBody></Table></div></section>
+      <section className="mt-5 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><h3 className="text-sm font-semibold text-slate-950">Цели и метрики</h3><p className="mt-0.5 text-xs text-slate-500">Стратегическая цель, план, факт, источник данных и унаследованные риски</p></div>{editable ? <Button onClick={() => setMetricDialogOpen(true)} size="sm" className="bg-slate-950 text-white hover:bg-slate-800"><Plus />Добавить метрику</Button> : <Button variant="ghost" size="sm" className="text-slate-600">Все цели <ArrowRight /></Button>}</div><MetricsTable items={metricItems} initiatives={selectedInitiatives} editable={editable} onPlanChange={(id, value) => updateMetric(id, { plan: value })} onFactChange={(id, value) => updateMetric(id, { fact: value })} onSourceChange={(id, value) => updateMetric(id, { source: value })} onRemove={(id) => setMetricItems(metricItems.filter((metric) => metric.id !== id))} /></section>
 
-      <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><div className="flex items-center gap-2"><Rocket className="size-4 text-[#ef3e42]" /><h3 className="text-sm font-semibold text-slate-950">Инициативы квартала</h3></div><p className="mt-1 text-xs text-slate-500">Стратегия, ключевая метрика, статус, риски и ресурс</p></div><Button onClick={onOpenInitiatives} variant="outline" size="sm">Открыть портфель <ArrowRight /></Button></div><InitiativesTable /></section>
+      <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><div className="flex items-center gap-2"><Rocket className="size-4 text-[#ef3e42]" /><h3 className="text-sm font-semibold text-slate-950">Инициативы квартала</h3></div><p className="mt-1 text-xs text-slate-500">Стратегия, ключевая метрика, риски и состав команды</p></div>{editable ? <Button onClick={() => setInitiativeDialogOpen(true)} size="sm" className="bg-slate-950 text-white hover:bg-slate-800"><Plus />Добавить из портфеля</Button> : <Button onClick={onOpenInitiatives} variant="outline" size="sm">Открыть портфель <ArrowRight /></Button>}</div><InitiativesTable items={selectedInitiatives} editable={editable} onRemove={(id) => setQbrInitiativeIds(qbrInitiativeIds.filter((item) => item !== id))} onEditFte={setPeopleInitiativeId} onAddRisk={setRiskInitiativeId} /></section>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-3"><section className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center gap-2"><CheckCircle2 className="size-4 text-emerald-600" /><h3 className="text-sm font-semibold">Главные достижения</h3></div><p className="mt-4 text-sm leading-6 text-slate-600">Новый онбординг повысил конверсию первого шага на 12%; доступность достигла 99,97%.</p></section><section className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center gap-2"><Flag className="size-4 text-rose-600" /><h3 className="text-sm font-semibold">Вопросы к QBR</h3></div><p className="mt-4 text-sm leading-6 text-slate-600">Зависимость от Data Platform и дефицит аналитического ресурса требуют обсуждения на встрече.</p></section><section className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center gap-2"><Lightbulb className="size-4 text-violet-600" /><h3 className="text-sm font-semibold">Зафиксированные решения</h3></div><p className="mt-4 text-sm leading-6 text-slate-600">Автоматизация получила приоритет P1; решение по дополнительному аналитику ожидает QBR.</p></section></div>
+
+      <Dialog open={metricDialogOpen} onOpenChange={setMetricDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Добавить целевую метрику</DialogTitle><DialogDescription>Выберите метрику из стратегического справочника и задайте значения для текущего квартала.</DialogDescription></DialogHeader>
+          <div className="space-y-4"><div className="space-y-2"><Label>Стратегическая метрика</Label><Select value={metricDraftId} onValueChange={(value) => { const metric = strategicMetrics.find((item) => item.id === value); setMetricDraftId(value); setMetricTargetDraft(metric?.plan ?? ""); setMetricFactDraft(metric?.fact ?? "") }}><SelectTrigger className="w-full"><SelectValue placeholder="Выберите метрику" /></SelectTrigger><SelectContent>{availableMetrics.map((metric) => <SelectItem key={metric.id} value={metric.id}>{metric.name}</SelectItem>)}</SelectContent></Select></div>{metricDraftId && (() => { const metric = strategicMetrics.find((item) => item.id === metricDraftId); return metric ? <div className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600"><span className="font-semibold text-slate-800">Стратегическая цель:</span> {metric.goal}<br /><span className="font-semibold text-slate-800">Направление:</span> {metric.strategy}</div> : null })()}<div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="metric-target">Целевое значение</Label><Input id="metric-target" value={metricTargetDraft} onChange={(event) => setMetricTargetDraft(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="metric-fact">Фактическое значение</Label><Input id="metric-fact" value={metricFactDraft} onChange={(event) => setMetricFactDraft(event.target.value)} /></div></div></div>
+          <DialogFooter><Button variant="outline" onClick={() => setMetricDialogOpen(false)}>Отмена</Button><Button onClick={addMetric} disabled={!metricDraftId}>Добавить в QBR</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={initiativeDialogOpen} onOpenChange={setInitiativeDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader><DialogTitle>Добавить инициативу в QBR</DialogTitle><DialogDescription>Выберите инициативы из портфеля текущего квартала.</DialogDescription></DialogHeader>
+          <div className="max-h-[420px] space-y-2 overflow-y-auto">{availableInitiatives.length ? availableInitiatives.map((initiative) => <div key={initiative.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-900">{initiative.title}</p><p className="mt-1 text-xs text-slate-500">{initiative.id} · {initiative.goal}</p></div><Button onClick={() => setQbrInitiativeIds([...qbrInitiativeIds, initiative.id])} variant="outline" size="sm"><Plus />Добавить</Button></div>) : <div className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Все инициативы портфеля уже добавлены в QBR.</div>}</div>
+          <DialogFooter><Button onClick={() => setInitiativeDialogOpen(false)}>Готово</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(peopleInitiativeId)} onOpenChange={(open) => !open && setPeopleInitiativeId(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader><DialogTitle>Состав и FTE инициативы</DialogTitle><DialogDescription>{peopleInitiative?.title}. Один добавленный сотрудник учитывается как 1,0 FTE в прототипе.</DialogDescription></DialogHeader>
+          <div className="flex items-center justify-between rounded-xl bg-blue-50 px-4 py-3"><span className="text-sm font-medium text-blue-900">Текущий ресурс</span><span className="text-lg font-bold text-blue-800">{peopleInitiative?.employees.length ?? 0},0 FTE</span></div>
+          <div className="grid max-h-[390px] gap-2 overflow-y-auto sm:grid-cols-2">{employeeDirectory.map((employee) => { const selected = peopleInitiative?.employees.includes(employee); return <button key={employee} onClick={() => peopleInitiativeId && toggleEmployee(peopleInitiativeId, employee)} className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${selected ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}><span className={`grid size-8 place-items-center rounded-full text-xs font-semibold ${selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}`}>{employee.split(" ").map((part) => part[0]).join("")}</span><span className="min-w-0 flex-1 text-sm font-medium text-slate-800">{employee}</span><span className={`text-xs font-semibold ${selected ? "text-rose-600" : "text-blue-700"}`}>{selected ? "Удалить" : "Добавить"}</span></button>})}</div>
+          <DialogFooter><Button onClick={() => setPeopleInitiativeId(null)}>Готово</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(riskInitiativeId)} onOpenChange={(open) => !open && setRiskInitiativeId(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Добавить риск</DialogTitle><DialogDescription>{riskInitiative?.title}. Укажите уровень и кратко опишите влияние на результат.</DialogDescription></DialogHeader>
+          <div className="space-y-4"><div className="space-y-2"><Label>Уровень риска</Label><Select value={riskLevel} onValueChange={(value) => setRiskLevel(value as RiskLevel)}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Низкий</SelectItem><SelectItem value="medium">Средний</SelectItem><SelectItem value="high">Высокий</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label htmlFor="risk-description">Описание риска</Label><Textarea id="risk-description" value={riskDescription} onChange={(event) => setRiskDescription(event.target.value)} placeholder="Например: задержка поставки данных сдвигает запуск на две недели" rows={4} /></div></div>
+          <DialogFooter><Button variant="outline" onClick={() => setRiskInitiativeId(null)}>Отмена</Button><Button onClick={addRisk} disabled={!riskDescription.trim()}><ShieldAlert />Добавить риск</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
@@ -398,6 +555,9 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState("Обзор")
   const [mode, setMode] = useState("Подготовка")
   const [quarterIndex, setQuarterIndex] = useState(1)
+  const [metricItems, setMetricItems] = useState<MetricItem[]>(() => strategicMetrics.slice(0, 4).map((metric) => ({ ...metric })))
+  const [initiativeItems, setInitiativeItems] = useState<InitiativeItem[]>(() => initiatives.map((initiative) => ({ ...initiative, employees: [...initiative.employees], risks: initiative.risks.map((risk) => ({ ...risk })) })))
+  const [qbrInitiativeIds, setQbrInitiativeIds] = useState<string[]>(() => initiatives.slice(0, 4).map((initiative) => initiative.id))
   const quarter = quarters[quarterIndex]
 
   const advanceMode = () => {
@@ -406,7 +566,7 @@ export default function Home() {
   }
 
   const pageTitle = globalPage === "Стратегия" ? "Стратегия Группы Московская Биржа" : globalPage === "Инициативы" ? "Портфель инициатив" : globalPage === "Мои QBR" ? "Цифровые сервисы" : globalPage
-  const pageSubtitle = globalPage === "Стратегия" ? "Стратегия 2028 → цели и метрики → квартальные инициативы" : globalPage === "Инициативы" ? `${quarter.label} · 5 инициатив` : globalPage === "Мои QBR" ? `Квартальный обзор · ${quarter.label}` : "Рабочее пространство"
+  const pageSubtitle = globalPage === "Стратегия" ? "Стратегия 2028 → цели и метрики → квартальные инициативы" : globalPage === "Инициативы" ? `${quarter.label} · ${initiativeItems.length} инициатив` : globalPage === "Мои QBR" ? `Квартальный обзор · ${quarter.label}` : "Рабочее пространство"
 
   return (
     <SidebarProvider>
@@ -417,12 +577,12 @@ export default function Home() {
       </Sidebar>
 
       <SidebarInset className="min-w-0 bg-[#f5f7fa]">
-        <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur md:px-7"><div className="flex min-w-0 items-center gap-3"><SidebarTrigger className="md:hidden" /><div className="min-w-0"><h1 className="truncate text-sm font-semibold text-slate-950 md:text-base">{pageTitle}</h1><p className="truncate text-xs text-slate-500">{pageSubtitle}</p></div></div><div className="flex shrink-0 items-center gap-2">{(globalPage === "Мои QBR" || globalPage === "Инициативы") && <QuarterSwitcher index={quarterIndex} onChange={setQuarterIndex} />}{globalPage === "Мои QBR" && <><div className="hidden items-center rounded-lg bg-slate-100 p-1 xl:flex">{["Подготовка", "Ревью", "Итоги"].map((item) => <button key={item} onClick={() => setMode(item)} className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${mode === item ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}>{item}</button>)}</div><Button onClick={advanceMode} size="sm" className="hidden bg-[#ef3e42] text-white hover:bg-[#d92f34] sm:flex">{mode === "Подготовка" ? "Завершить подготовку" : mode === "Ревью" ? "Зафиксировать итоги" : "Экспорт PDF"}{mode === "Итоги" ? <FileText /> : <ArrowRight />}</Button></>}{globalPage === "Стратегия" && <Button variant="outline" size="sm" asChild className="hidden sm:flex"><a href="https://www.moex.com/files/4g62xymgykeh5zb9r40newqv42" target="_blank" rel="noreferrer">Источник <ExternalLink /></a></Button>}</div></header>
+        <header className="sticky top-0 z-20 flex min-h-[72px] items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur md:px-7"><div className="flex min-w-0 items-center gap-3"><SidebarTrigger className="md:hidden" />{(globalPage === "Мои QBR" || globalPage === "Инициативы") && <QuarterSwitcher index={quarterIndex} onChange={setQuarterIndex} />}<div className="hidden min-w-0 lg:block"><h1 className="truncate text-sm font-semibold text-slate-950 md:text-base">{pageTitle}</h1><p className="truncate text-xs text-slate-500">{pageSubtitle}</p></div></div><div className="flex shrink-0 items-center gap-2">{globalPage === "Мои QBR" && <><div className="hidden items-center rounded-lg bg-slate-100 p-1 xl:flex">{["Подготовка", "Ревью", "Итоги"].map((item) => <button key={item} onClick={() => setMode(item)} className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${mode === item ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}>{item}</button>)}</div><Button onClick={advanceMode} size="sm" className="hidden bg-[#ef3e42] text-white hover:bg-[#d92f34] sm:flex">{mode === "Подготовка" ? "Завершить подготовку" : mode === "Ревью" ? "Зафиксировать итоги" : "Экспорт PDF"}{mode === "Итоги" ? <FileText /> : <ArrowRight />}</Button></>}{globalPage === "Стратегия" && <Button variant="outline" size="sm" asChild className="hidden sm:flex"><a href="https://www.moex.com/files/4g62xymgykeh5zb9r40newqv42" target="_blank" rel="noreferrer">Источник <ExternalLink /></a></Button>}</div></header>
 
         {globalPage === "Стратегия" && <StrategyPage onOpenInitiatives={() => setGlobalPage("Инициативы")} />}
-        {globalPage === "Инициативы" && <InitiativesPage quarterIndex={quarterIndex} />}
+        {globalPage === "Инициативы" && <InitiativesPage quarterIndex={quarterIndex} items={initiativeItems} />}
         {globalPage === "Команды" && <PlaceholderPage title="Команды" />}
-        {globalPage === "Мои QBR" && <Tabs value={activeSection} onValueChange={setActiveSection} className="gap-0"><div className="border-b border-slate-200 bg-white px-4 md:px-7"><div className="flex h-14 items-center justify-between gap-6 overflow-x-auto scrollbar-none"><TabsList variant="line" className="h-full shrink-0 gap-6 p-0" aria-label="Разделы квартального обзора">{reviewSections.map((item) => <TabsTrigger key={item} value={item} className="h-full px-0 text-sm data-[state=active]:font-semibold data-[state=active]:after:bg-[#ef3e42]">{item}</TabsTrigger>)}</TabsList><div className="hidden shrink-0 items-center gap-2 text-xs text-slate-500 xl:flex"><span>{quarter.phase}</span><Progress value={quarter.completion} className="h-1.5 w-24 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-emerald-500" /><span className="font-semibold text-slate-700">{quarter.completion}%</span></div></div></div>{activeSection === "Обзор" ? <QbrOverview quarterIndex={quarterIndex} onOpenInitiatives={() => setGlobalPage("Инициативы")} /> : <SectionWorkspace section={activeSection as keyof typeof workspaceData} />}</Tabs>}
+        {globalPage === "Мои QBR" && <Tabs value={activeSection} onValueChange={setActiveSection} className="gap-0"><div className="border-b border-slate-200 bg-white px-4 md:px-7"><div className="flex h-14 items-center justify-between gap-6 overflow-x-auto scrollbar-none"><TabsList variant="line" className="h-full shrink-0 gap-6 p-0" aria-label="Разделы квартального обзора">{reviewSections.map((item) => <TabsTrigger key={item} value={item} className="h-full px-0 text-sm data-[state=active]:font-semibold data-[state=active]:after:bg-[#ef3e42]">{item}</TabsTrigger>)}</TabsList><div className="hidden shrink-0 items-center gap-2 text-xs text-slate-500 xl:flex"><span>{quarter.phase}</span><Progress value={quarter.completion} className="h-1.5 w-24 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-emerald-500" /><span className="font-semibold text-slate-700">{quarter.completion}%</span></div></div></div>{activeSection === "Обзор" ? <QbrOverview quarterIndex={quarterIndex} mode={mode} metricItems={metricItems} setMetricItems={setMetricItems} initiativeItems={initiativeItems} setInitiativeItems={setInitiativeItems} qbrInitiativeIds={qbrInitiativeIds} setQbrInitiativeIds={setQbrInitiativeIds} onOpenInitiatives={() => setGlobalPage("Инициативы")} /> : <SectionWorkspace section={activeSection as keyof typeof workspaceData} />}</Tabs>}
       </SidebarInset>
     </SidebarProvider>
   )
