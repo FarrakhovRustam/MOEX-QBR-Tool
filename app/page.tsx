@@ -80,6 +80,7 @@ const strategyKpis = [
   { value: "18%+", label: "RoE на протяжении стратегии" },
   { value: "65+ млрд ₽", label: "чистая прибыль к 2028 году" },
   { value: "50%+", label: "прибыли МСФО — дивиденды" },
+  { value: "50–55%", label: "Cost-to-F&C Income Ratio к 2028 году" },
 ] as const
 
 const strategyDirections = [
@@ -316,6 +317,11 @@ function StrategyPage({ onOpenInitiatives }: { onOpenInitiatives: () => void }) 
         </div>
       </section>
 
+      <div className="mt-4 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+        <CircleDot className="mt-0.5 size-4 shrink-0 text-blue-600" />
+        <p className="text-xs leading-5 text-blue-900"><span className="font-semibold">Логика прототипа:</span> стратегические направления и целевые ориентиры перенесены из опубликованной Стратегии Группы Московская Биржа 2028. Декомпозиция до командных OKR, инициатив и FTE показана как демонстрационная модель QBR Tool.</p>
+      </div>
+
       <div className="mt-6 grid gap-5 xl:grid-cols-3">
         {strategyDirections.map((direction) => (
           <article key={direction.number} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -339,6 +345,7 @@ function StrategyPage({ onOpenInitiatives }: { onOpenInitiatives: () => void }) 
 
       <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-center gap-3"><p className="mr-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Катализаторы достижения стратегии</p>{["Культура инвестиций", "Трансформация процессов и снижение time-to-market", "OpenAPI, AI и blockchain"].map((item) => <span key={item} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700">{item}</span>)}</div>
+        <a href="https://www.moex.com/files/4g62xymgykeh5zb9r40newqv42" target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition hover:text-slate-900">Источник: Стратегия Группы Московская Биржа 2028 <ExternalLink className="size-3.5" /></a>
       </section>
     </main>
   )
