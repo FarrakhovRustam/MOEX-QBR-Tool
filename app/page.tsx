@@ -127,6 +127,7 @@ type InitiativeItem = {
 type MetricItem = {
   id: string;
   name: string;
+  category: string;
   strategy: string;
   goal: string;
   plan: string;
@@ -519,6 +520,7 @@ const strategicMetrics: MetricItem[] = [
   {
     id: "M-101",
     name: "Активные пользователи терминала",
+    category: "Стратегическая",
     description:
       "Количество уникальных клиентов, регулярно использующих терминал.",
     strategy: "Активное вовлечение конечного клиента",
@@ -534,6 +536,7 @@ const strategicMetrics: MetricItem[] = [
   {
     id: "M-102",
     name: "Конверсия в целевое действие",
+    category: "Операционная",
     description:
       "Доля пользователей, завершивших ключевое действие в цифровом сервисе.",
     strategy: "Активное вовлечение конечного клиента",
@@ -549,6 +552,7 @@ const strategicMetrics: MetricItem[] = [
   {
     id: "M-103",
     name: "Время запуска эксперимента",
+    category: "Операционная",
     description:
       "Среднее время от постановки гипотезы до запуска эксперимента.",
     strategy: "Современные технологии",
@@ -564,6 +568,7 @@ const strategicMetrics: MetricItem[] = [
   {
     id: "M-104",
     name: "Доступность сервиса",
+    category: "Контрольная",
     description: "Доля времени штатной доступности клиентского сервиса.",
     strategy: "Современные технологии",
     goal: "Повысить надежность клиентских сервисов",
@@ -578,6 +583,7 @@ const strategicMetrics: MetricItem[] = [
   {
     id: "M-105",
     name: "Новые эмитенты на платформе",
+    category: "Стратегическая",
     description: "Количество новых активных эмитентов, подключенных за период.",
     strategy: "Развитие рынков капитала",
     goal: "Увеличить число активных эмитентов",
@@ -592,6 +598,7 @@ const strategicMetrics: MetricItem[] = [
   {
     id: "M-106",
     name: "Доля автоматизированных операций",
+    category: "Операционная",
     description: "Доля операций, выполняемых без ручного участия сотрудников.",
     strategy: "Современные технологии",
     goal: "Снизить операционную нагрузку",
@@ -1465,7 +1472,7 @@ function InitiativesPage({
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label>Стратегическая цель</Label>
+              <Label>Цель</Label>
               <Select value={goalDraft} onValueChange={setGoalDraft}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Выберите одну цель" />
@@ -1480,7 +1487,7 @@ function InitiativesPage({
               </Select>
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label>Стратегические метрики</Label>
+              <Label>Метрики</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1613,6 +1620,7 @@ function MetricsPage({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [categoryDraft, setCategoryDraft] = useState("Операционная");
   const [valueDraft, setValueDraft] = useState("");
   const [sourceMode, setSourceMode] = useState("manual");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1620,14 +1628,15 @@ function MetricsPage({
   const filteredItems = items.filter(
     (metric) =>
       !query ||
-      [metric.name, metric.description, metric.source].some((value) =>
-        value.toLowerCase().includes(query),
+      [metric.name, metric.description, metric.category, metric.source].some(
+        (value) => value.toLowerCase().includes(query),
       ),
   );
   const resetDrafts = () => {
     setEditingId(null);
     setNameDraft("");
     setDescriptionDraft("");
+    setCategoryDraft("Операционная");
     setValueDraft("");
     setSourceMode("manual");
   };
@@ -1639,6 +1648,7 @@ function MetricsPage({
     setEditingId(metric.id);
     setNameDraft(metric.name);
     setDescriptionDraft(metric.description);
+    setCategoryDraft(metric.category);
     setValueDraft(metric.fact);
     setSourceMode(metric.source === "Вручную" ? "manual" : "integration");
     setDialogOpen(true);
@@ -1658,6 +1668,7 @@ function MetricsPage({
                 ...metric,
                 name: nameDraft.trim(),
                 description: descriptionDraft.trim(),
+                category: categoryDraft,
                 fact: sourceMode === "manual" ? valueDraft.trim() : metric.fact,
                 plan: sourceMode === "manual" ? valueDraft.trim() : metric.plan,
                 source: sourceMode === "manual" ? "Вручную" : metric.source,
@@ -1672,6 +1683,7 @@ function MetricsPage({
           id: `M-${110 + items.length}`,
           name: nameDraft.trim(),
           description: descriptionDraft.trim(),
+          category: categoryDraft,
           strategy: "",
           goal: nameDraft.trim(),
           plan: valueDraft.trim(),
@@ -1719,22 +1731,25 @@ function MetricsPage({
           </div>
         </div>
         <div className="overflow-x-auto">
-          <Table className="min-w-[980px]">
+          <Table className="min-w-[1080px]">
             <TableHeader>
               <TableRow className="bg-slate-50/70 hover:bg-slate-50/70">
-                <TableHead className="w-[25%] pl-5 text-xs text-slate-600">
+                <TableHead className="w-[22%] pl-5 text-xs text-slate-600">
                   Метрика
                 </TableHead>
-                <TableHead className="w-[38%] text-xs text-slate-600">
+                <TableHead className="w-[30%] text-xs text-slate-600">
                   Описание
                 </TableHead>
-                <TableHead className="w-[15%] text-xs text-slate-600">
+                <TableHead className="w-[14%] text-xs text-slate-600">
+                  Категория
+                </TableHead>
+                <TableHead className="w-[12%] text-xs text-slate-600">
                   Значение
                 </TableHead>
-                <TableHead className="w-[15%] text-xs text-slate-600">
+                <TableHead className="w-[14%] text-xs text-slate-600">
                   Источник
                 </TableHead>
-                <TableHead className="w-[7%] pr-5 text-right text-xs text-slate-600">
+                <TableHead className="w-[8%] pr-5 text-right text-xs text-slate-600">
                   Действия
                 </TableHead>
               </TableRow>
@@ -1748,6 +1763,11 @@ function MetricsPage({
                   </TableCell>
                   <TableCell className="text-sm leading-6 text-slate-600">
                     {metric.description}
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                      {metric.category}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <p className="text-lg font-semibold text-slate-950">
@@ -1812,6 +1832,19 @@ function MetricsPage({
                 placeholder="Что измеряет показатель и как интерпретируется"
                 rows={3}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Категория</Label>
+              <Select value={categoryDraft} onValueChange={setCategoryDraft}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Стратегическая">Стратегическая</SelectItem>
+                  <SelectItem value="Операционная">Операционная</SelectItem>
+                  <SelectItem value="Контрольная">Контрольная</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Значение и источник</Label>
@@ -2339,10 +2372,10 @@ function MetricsTable({
               Метрика
             </TableHead>
             <TableHead className="w-[210px] text-xs text-slate-500">
-              Стратегическая цель
+              Цель
             </TableHead>
             <TableHead className="w-[125px] text-xs text-slate-500">
-              Цель
+              Целевое значение
             </TableHead>
             <TableHead className="w-[135px] text-xs text-slate-500">
               Факт
@@ -2731,6 +2764,32 @@ function QbrOverview({
     setMetricDraftId("");
     setMetricTargetDraft("");
   };
+  const addInitiativeToQbr = (initiativeId: string) => {
+    const initiative = initiativeItems.find((item) => item.id === initiativeId);
+    if (!initiative) return;
+    const linkedCatalogMetrics = metricCatalog.filter((metric) =>
+      initiative.linkedMetrics.includes(metric.name),
+    );
+    setQbrInitiativeIds([...qbrInitiativeIds, initiativeId]);
+    setMetricItems([
+      ...metricItems,
+      ...linkedCatalogMetrics
+        .filter((metric) => !metricItems.some((item) => item.id === metric.id))
+        .map((metric) => ({ ...metric })),
+    ]);
+  };
+  const removeInitiativeFromQbr = (initiativeId: string) => {
+    const remainingIds = qbrInitiativeIds.filter((id) => id !== initiativeId);
+    const remainingMetricNames = new Set(
+      initiativeItems
+        .filter((initiative) => remainingIds.includes(initiative.id))
+        .flatMap((initiative) => initiative.linkedMetrics),
+    );
+    setQbrInitiativeIds(remainingIds);
+    setMetricItems(
+      metricItems.filter((metric) => remainingMetricNames.has(metric.name)),
+    );
+  };
   const toggleEmployee = (initiativeId: string, employee: string) =>
     setInitiativeItems(
       initiativeItems.map((initiative) => {
@@ -2809,197 +2868,209 @@ function QbrOverview({
 
   return (
     <main className="mx-auto w-full max-w-[1480px] p-4 md:p-7">
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={Target}
-          label="Цели и метрики"
-          value={`${metricItems.length}`}
-          note="включено в QBR"
-          tone="blue"
-        />
-        <StatCard
-          icon={Rocket}
-          label="Инициативы"
-          value={`${selectedInitiatives.length}`}
-          note="включено в QBR"
-          tone="amber"
-        />
-        <StatCard
-          icon={BriefcaseBusiness}
-          label="Ресурс инициатив"
-          value={`${selectedInitiatives.reduce((sum, item) => sum + item.fte, 0)} FTE`}
-          note="по составу команд"
-          tone="violet"
-        />
-        <StatCard
-          icon={ListChecks}
-          label="Вопросы"
-          value={`${questions.length}`}
-          note={reviewMode ? "обсуждаются на ревью" : "подготовлено к встрече"}
-          tone="red"
-        />
-      </section>
+      {!editable && (
+        <>
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              icon={Target}
+              label="Цели и метрики"
+              value={`${metricItems.length}`}
+              note="включено в QBR"
+              tone="blue"
+            />
+            <StatCard
+              icon={Rocket}
+              label="Инициативы"
+              value={`${selectedInitiatives.length}`}
+              note="включено в QBR"
+              tone="amber"
+            />
+            <StatCard
+              icon={BriefcaseBusiness}
+              label="Ресурс инициатив"
+              value={`${selectedInitiatives.reduce((sum, item) => sum + item.fte, 0)} FTE`}
+              note="по составу команд"
+              tone="violet"
+            />
+            <StatCard
+              icon={ListChecks}
+              label="Вопросы"
+              value={`${questions.length}`}
+              note={
+                reviewMode ? "обсуждаются на ревью" : "подготовлено к встрече"
+              }
+              tone="red"
+            />
+          </section>
+        </>
+      )}
 
-      <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-          <div>
-            <h3 className="text-xl font-semibold text-slate-950">
-              Цели и метрики
-            </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Результаты периода и инициативы, которые обеспечивают достижение
-              цели
-            </p>
-          </div>
-          {editable ? (
-            <Button
-              onClick={() => setMetricDialogOpen(true)}
-              size="sm"
-              className="bg-slate-950 text-white hover:bg-slate-800"
-            >
-              <Plus />
-              Добавить метрику
-            </Button>
-          ) : null}
-        </div>
-        <div className="grid gap-4 bg-slate-50/50 p-4 xl:grid-cols-2">
-          {metricItems.map((metric) => {
-            const linked = selectedInitiatives.filter((initiative) =>
-              initiative.linkedMetrics.includes(metric.name),
-            );
-            const inheritedRisks = linked.flatMap(
-              (initiative) => initiative.risks,
-            );
-            return (
-              <article
-                key={metric.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+      {!editable && (
+        <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+            <div>
+              <h3 className="text-xl font-semibold text-slate-950">
+                Цели и метрики
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Результаты периода и инициативы, которые обеспечивают достижение
+                цели
+              </p>
+            </div>
+            {editable ? (
+              <Button
+                onClick={() => setMetricDialogOpen(true)}
+                size="sm"
+                className="bg-slate-950 text-white hover:bg-slate-800"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <StatusDot status={metric.status} />
+                <Plus />
+                Добавить метрику
+              </Button>
+            ) : null}
+          </div>
+          <div className="grid gap-4 bg-slate-50/50 p-4 xl:grid-cols-2">
+            {metricItems.map((metric) => {
+              const linked = selectedInitiatives.filter((initiative) =>
+                initiative.linkedMetrics.includes(metric.name),
+              );
+              const inheritedRisks = linked.flatMap(
+                (initiative) => initiative.risks,
+              );
+              return (
+                <article
+                  key={metric.id}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <StatusDot status={metric.status} />
+                      <div>
+                        <h4 className="font-semibold leading-5 text-slate-950">
+                          {metric.name}
+                        </h4>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                          {metric.description}
+                        </p>
+                      </div>
+                    </div>
+                    <RiskCounters risks={inheritedRisks} />
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
                     <div>
-                      <h4 className="font-semibold leading-5 text-slate-950">
-                        {metric.name}
-                      </h4>
-                      <p className="mt-1 text-xs leading-5 text-slate-500">
-                        {metric.description}
+                      <p className="text-xs text-slate-500">Целевое значение</p>
+                      {editable ? (
+                        <Input
+                          value={metric.plan}
+                          onChange={(event) =>
+                            updateMetric(metric.id, {
+                              plan: event.target.value,
+                            })
+                          }
+                          className="mt-1 h-8"
+                        />
+                      ) : (
+                        <p className="mt-1 text-lg font-semibold text-slate-950">
+                          {metric.plan}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">
+                        Фактическое значение
                       </p>
+                      {editable ? (
+                        <Input
+                          value={metric.fact}
+                          onChange={(event) =>
+                            updateMetric(metric.id, {
+                              fact: event.target.value,
+                            })
+                          }
+                          className="mt-1 h-8"
+                        />
+                      ) : (
+                        <p className="mt-1 text-lg font-semibold text-slate-950">
+                          {metric.fact}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <RiskCounters risks={inheritedRisks} />
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-slate-500">Целевое значение</p>
-                    {editable ? (
-                      <Input
-                        value={metric.plan}
-                        onChange={(event) =>
-                          updateMetric(metric.id, { plan: event.target.value })
-                        }
-                        className="mt-1 h-8"
-                      />
-                    ) : (
-                      <p className="mt-1 text-lg font-semibold text-slate-950">
-                        {metric.plan}
-                      </p>
-                    )}
+                  <div className="mt-4 flex items-center gap-3">
+                    <Progress
+                      value={Math.min(metric.progress, 100)}
+                      className="h-2 flex-1 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-900"
+                    />
+                    <span className="text-sm font-semibold text-slate-700">
+                      {metric.progress}%
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500">
-                      Фактическое значение
+                  <div className="mt-4 rounded-xl bg-slate-50 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                      Связанные инициативы
                     </p>
-                    {editable ? (
-                      <Input
-                        value={metric.fact}
-                        onChange={(event) =>
-                          updateMetric(metric.id, { fact: event.target.value })
-                        }
-                        className="mt-1 h-8"
-                      />
-                    ) : (
-                      <p className="mt-1 text-lg font-semibold text-slate-950">
-                        {metric.fact}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center gap-3">
-                  <Progress
-                    value={Math.min(metric.progress, 100)}
-                    className="h-2 flex-1 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-900"
-                  />
-                  <span className="text-sm font-semibold text-slate-700">
-                    {metric.progress}%
-                  </span>
-                </div>
-                <div className="mt-4 rounded-xl bg-slate-50 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
-                    Связанные инициативы
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {linked.length ? (
-                      linked.map((initiative) => (
-                        <span
-                          key={initiative.id}
-                          className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200"
-                        >
-                          {initiative.id} · {initiative.title}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {linked.length ? (
+                        linked.map((initiative) => (
+                          <span
+                            key={initiative.id}
+                            className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200"
+                          >
+                            {initiative.id} · {initiative.title}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-amber-700">
+                          Нет связанных инициатив
                         </span>
-                      ))
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                    {editable ? (
+                      <Select
+                        value={metric.source}
+                        onValueChange={(value) =>
+                          updateMetric(metric.id, { source: value })
+                        }
+                      >
+                        <SelectTrigger size="sm" className="w-[160px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Вручную">Вручную</SelectItem>
+                          <SelectItem value="DWH">DWH</SelectItem>
+                          <SelectItem value="BI-витрина">BI-витрина</SelectItem>
+                          <SelectItem value="Мониторинг">Мониторинг</SelectItem>
+                          <SelectItem value="Файл AdHoc">Файл AdHoc</SelectItem>
+                        </SelectContent>
+                      </Select>
                     ) : (
-                      <span className="text-xs text-amber-700">
-                        Нет связанных инициатив
+                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                        <Database className="size-3.5" />
+                        {metric.source}
                       </span>
                     )}
+                    {editable && (
+                      <Button
+                        onClick={() =>
+                          setMetricItems(
+                            metricItems.filter((item) => item.id !== metric.id),
+                          )
+                        }
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-slate-400 hover:text-rose-600"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
                   </div>
-                </div>
-                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                  {editable ? (
-                    <Select
-                      value={metric.source}
-                      onValueChange={(value) =>
-                        updateMetric(metric.id, { source: value })
-                      }
-                    >
-                      <SelectTrigger size="sm" className="w-[160px] text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Вручную">Вручную</SelectItem>
-                        <SelectItem value="DWH">DWH</SelectItem>
-                        <SelectItem value="BI-витрина">BI-витрина</SelectItem>
-                        <SelectItem value="Мониторинг">Мониторинг</SelectItem>
-                        <SelectItem value="Файл AdHoc">Файл AdHoc</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                      <Database className="size-3.5" />
-                      {metric.source}
-                    </span>
-                  )}
-                  {editable && (
-                    <Button
-                      onClick={() =>
-                        setMetricItems(
-                          metricItems.filter((item) => item.id !== metric.id),
-                        )
-                      }
-                      variant="ghost"
-                      size="icon-sm"
-                      className="text-slate-400 hover:text-rose-600"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
@@ -3032,9 +3103,7 @@ function QbrOverview({
         <InitiativesTable
           items={selectedInitiatives}
           editable={editable}
-          onRemove={(id) =>
-            setQbrInitiativeIds(qbrInitiativeIds.filter((item) => item !== id))
-          }
+          onRemove={removeInitiativeFromQbr}
           onEditFte={setPeopleInitiativeId}
           onAddRisk={setRiskInitiativeId}
           onStatusChange={(id, status) =>
@@ -3067,6 +3136,38 @@ function QbrOverview({
           }}
         />
       </section>
+
+      {editable && (
+        <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <ChartBar className="size-5 text-blue-600" />
+                <h3 className="text-xl font-semibold text-slate-950">
+                  Метрики инициатив
+                </h3>
+              </div>
+              <p className="mt-1 text-sm text-slate-500">
+                Добавляются автоматически из связей выбранных инициатив
+              </p>
+            </div>
+            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+              {metricItems.length} метрик
+            </span>
+          </div>
+          <MetricsTable
+            items={metricItems}
+            initiatives={selectedInitiatives}
+            editable
+            onPlanChange={(id, value) => updateMetric(id, { plan: value })}
+            onFactChange={(id, value) => updateMetric(id, { fact: value })}
+            onSourceChange={(id, value) => updateMetric(id, { source: value })}
+            onRemove={(id) =>
+              setMetricItems(metricItems.filter((metric) => metric.id !== id))
+            }
+          />
+        </section>
+      )}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
@@ -3251,9 +3352,7 @@ function QbrOverview({
                     </p>
                   </div>
                   <Button
-                    onClick={() =>
-                      setQbrInitiativeIds([...qbrInitiativeIds, initiative.id])
-                    }
+                    onClick={() => addInitiativeToQbr(initiative.id)}
                     size="sm"
                     className="bg-slate-950 text-white hover:bg-slate-800"
                   >
@@ -3775,9 +3874,14 @@ export default function Home() {
   const [metricCatalog, setMetricCatalog] = useState<MetricItem[]>(() =>
     strategicMetrics.map((metric) => ({ ...metric })),
   );
-  const [metricItems, setMetricItems] = useState<MetricItem[]>(() =>
-    strategicMetrics.slice(0, 4).map((metric) => ({ ...metric })),
-  );
+  const [metricItems, setMetricItems] = useState<MetricItem[]>(() => {
+    const initialMetricNames = new Set(
+      initiatives.slice(0, 4).flatMap((initiative) => initiative.linkedMetrics),
+    );
+    return strategicMetrics
+      .filter((metric) => initialMetricNames.has(metric.name))
+      .map((metric) => ({ ...metric }));
+  });
   const [teams, setTeams] = useState<TeamItem[]>(() =>
     initialTeams.map((team) => ({
       ...team,
@@ -3798,6 +3902,9 @@ export default function Home() {
     initialQbrQuestions.map((item) => ({ ...item })),
   );
   const quarter = quarters[quarterIndex];
+  const questionsWithDecision = questions.filter((item) =>
+    item.decision.trim(),
+  ).length;
 
   const pageTitle =
     globalPage === "Стратегия"
@@ -4020,8 +4127,8 @@ export default function Home() {
         {globalPage === "Мои QBR" && (
           <>
             <section className="border-b border-slate-200 bg-white px-4 py-4 md:px-7">
-              <div className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                <div className="flex items-start gap-3">
+              <div className="flex w-full items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
                   {mode === "Подготовка" ? (
                     <Pencil className="mt-1 size-5 text-blue-600" />
                   ) : mode === "Ревью" ? (
@@ -4040,9 +4147,9 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
-                <div className="flex min-h-[56px] w-full items-center justify-end sm:w-auto sm:min-w-[390px]">
+                <div className="ml-auto flex min-h-[60px] shrink-0 items-start justify-end">
                   {mode === "Подготовка" && (
-                    <div className="flex min-w-[210px] flex-col items-stretch gap-1.5">
+                    <div className="flex w-[220px] flex-col items-stretch gap-1.5">
                       <Button
                         onClick={() => setMode("Ревью")}
                         className="bg-sky-500 text-white hover:bg-sky-600"
@@ -4055,7 +4162,7 @@ export default function Home() {
                     </div>
                   )}
                   {mode === "Ревью" && (
-                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="grid grid-cols-2 items-start gap-x-2 gap-y-1.5">
                       <Button
                         onClick={() => setMode("Подготовка")}
                         variant="outline"
@@ -4070,21 +4177,17 @@ export default function Home() {
                       >
                         Завершить ревью <ArrowRight className="size-5" />
                       </Button>
+                      <p className="col-start-2 text-center text-xs font-medium text-slate-500">
+                        {questionsWithDecision}/{questions.length} вопросов
+                        имеют решение
+                      </p>
                     </div>
                   )}
                   {mode === "Итоги" && (
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Button
-                        onClick={() => setMode("Ревью")}
-                        variant="outline"
-                        className="border-slate-300 bg-white text-slate-600 hover:bg-slate-100"
-                      >
-                        <ArrowLeft className="size-5" />
-                        Вернуть на ревью
-                      </Button>
+                    <div className="flex w-[220px] items-start justify-end">
                       <Button
                         onClick={() => window.print()}
-                        className="bg-slate-950 text-white hover:bg-slate-800"
+                        className="w-full bg-slate-950 text-white hover:bg-slate-800"
                       >
                         <FileDown />
                         PDF
@@ -4094,7 +4197,7 @@ export default function Home() {
                 </div>
               </div>
             </section>
-            {mode !== "Итоги" && (
+            {mode === "Ревью" && (
               <QbrPeriodOverview
                 quarterIndex={quarterIndex}
                 metricItems={metricItems}
