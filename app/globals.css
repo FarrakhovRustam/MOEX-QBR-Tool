@@ -155,3 +155,11 @@ a {
   padding-inline: 1rem;
   border-radius: 0.5rem;
 }
+
+[data-slot="table-body"] [data-slot="table-row"] {
+  transition: background-color 150ms ease;
+}
+
+[data-slot="table-body"] [data-slot="table-row"]:hover {
+  background-color: rgb(248 250 252 / 0.65);
+}

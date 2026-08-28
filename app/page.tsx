@@ -944,64 +944,30 @@ function StrategyPage({
 }
 
 function RiskCounters({ risks }: { risks: InitiativeRisk[] }) {
-  const levels: { key: RiskLevel; label: string; className: string }[] = [
-    {
-      key: "high",
-      label: "Высокий",
-      className: "bg-rose-100 text-rose-700 ring-rose-300",
-    },
-    {
-      key: "medium",
-      label: "Средний",
-      className: "bg-amber-100 text-amber-700 ring-amber-300",
-    },
-    {
-      key: "low",
-      label: "Низкий",
-      className: "bg-emerald-100 text-emerald-700 ring-emerald-300",
-    },
-  ];
-  const active = levels
-    .map((level) => ({
-      ...level,
-      count: risks.filter((risk) => risk.level === level.key).length,
-    }))
-    .filter((level) => level.count > 0);
-  if (!active.length)
-    return (
-      <span
-        className="grid size-7 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 ring-1 ring-inset ring-slate-200"
-        title="Рисков нет"
-      >
-        0
-      </span>
-    );
+  const high = risks.filter((risk) => risk.level === "high").length;
+  const medium = risks.filter((risk) => risk.level === "medium").length;
+  const low = risks.filter((risk) => risk.level === "low").length;
+  const title = risks.length
+    ? `Всего: ${risks.length}. Высоких: ${high}, средних: ${medium}, низких: ${low}`
+    : "Рисков нет";
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {active.map((level) => (
-        <span
-          key={level.key}
-          className={`grid size-7 place-items-center rounded-full text-xs font-bold ring-1 ring-inset ${level.className}`}
-          title={`${level.label}: ${level.count}`}
-          aria-label={`${level.label}: ${level.count}`}
-        >
-          {level.count}
-        </span>
-      ))}
-    </div>
+    <span
+      className={`relative inline-grid size-8 shrink-0 place-items-center ${risks.length ? "text-rose-700" : "text-slate-500"}`}
+      title={title}
+      aria-label={title}
+    >
+      <AlertTriangle
+        className={`absolute size-8 ${risks.length ? "fill-rose-100 text-rose-300" : "fill-slate-100 text-slate-300"}`}
+      />
+      <span className="relative mt-1 text-[10px] font-bold">
+        {risks.length}
+      </span>
+    </span>
   );
 }
 
 function InitiativeRiskSummary({ risks }: { risks: InitiativeRisk[] }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700"
-      title={`Всего рисков: ${risks.length}`}
-    >
-      <AlertTriangle className="size-6 fill-rose-100 text-rose-300" />
-      <span>{risks.length}</span>
-    </span>
-  );
+  return <RiskCounters risks={risks} />;
 }
 
 function InitiativesTable({
@@ -1010,6 +976,7 @@ function InitiativesTable({
   onRemove,
   onEditFte,
   onAddRisk,
+  onCurrentChange,
   onStatusChange,
   onEditOwnerTeam,
   onEdit,
@@ -1019,6 +986,7 @@ function InitiativesTable({
   onRemove?: (id: string) => void;
   onEditFte?: (id: string) => void;
   onAddRisk?: (id: string) => void;
+  onCurrentChange?: (id: string, value: string) => void;
   onStatusChange?: (id: string, status: string) => void;
   onEditOwnerTeam?: (id: string) => void;
   onEdit?: (item: InitiativeItem) => void;
@@ -1102,11 +1070,24 @@ function InitiativesTable({
                     </p>
                   ))}
                 </div>
-                <p className="mt-2 text-xs leading-4 text-slate-400">
-                  Цель: {item.target}
-                  <br />
-                  Сейчас: {item.current}
-                </p>
+                <div className="mt-2 text-xs leading-4 text-slate-400">
+                  <p>Цель: {item.target}</p>
+                  {editable ? (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span className="shrink-0">Сейчас:</span>
+                      <Input
+                        value={item.current}
+                        onChange={(event) =>
+                          onCurrentChange?.(item.id, event.target.value)
+                        }
+                        className="h-8 min-w-0 bg-white px-2 text-xs font-medium text-slate-900"
+                        aria-label={`Фактическое значение ${item.title}`}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-1">Сейчас: {item.current}</p>
+                  )}
+                </div>
               </TableCell>
               <TableCell>
                 {editable ? (
@@ -1867,7 +1848,7 @@ function MetricsPage({
                   className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-500"
                 >
                   Возможность добавить источник будет реализована в следующих
-                  версиях приложения.
+                  версиях QBR Tool.
                 </TabsContent>
               </Tabs>
             </div>
@@ -3106,6 +3087,15 @@ function QbrOverview({
           onRemove={removeInitiativeFromQbr}
           onEditFte={setPeopleInitiativeId}
           onAddRisk={setRiskInitiativeId}
+          onCurrentChange={(id, value) =>
+            setInitiativeItems(
+              initiativeItems.map((initiative) =>
+                initiative.id === id
+                  ? { ...initiative, current: value }
+                  : initiative,
+              ),
+            )
+          }
           onStatusChange={(id, status) =>
             setInitiativeItems(
               initiativeItems.map((initiative) =>
@@ -3200,7 +3190,7 @@ function QbrOverview({
               className="bg-slate-950 text-white hover:bg-slate-800"
             >
               <Plus />
-              Решение без вопроса
+              Решение
             </Button>
           ) : null}
         </div>
@@ -3766,6 +3756,57 @@ function QbrResults({
         />
       </section>
       <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-semibold text-slate-950">
+              Инициативы периода
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Краткий итог по работам, статусам и ключевым результатам
+            </p>
+          </div>
+          <span className="text-sm font-semibold text-slate-700">
+            {selectedInitiatives.length} инициатив
+          </span>
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+          {selectedInitiatives.map((initiative) => (
+            <article
+              key={initiative.id}
+              className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium text-slate-400">
+                    {initiative.id}
+                  </p>
+                  <h4 className="mt-1 text-sm font-semibold leading-5 text-slate-950">
+                    {initiative.title}
+                  </h4>
+                </div>
+                <InitiativeRiskSummary risks={initiative.risks} />
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <StatusPill label={initiative.status} tone={initiative.tone} />
+                <span className="text-sm font-semibold text-slate-800">
+                  {initiative.progress}%
+                </span>
+              </div>
+              <Progress
+                value={initiative.progress}
+                className="mt-2 h-1.5 bg-white [&_[data-slot=progress-indicator]]:bg-slate-800"
+              />
+              <div className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">
+                <p>{initiative.linkedMetrics[0] || "Метрика не указана"}</p>
+                <p className="mt-1 font-medium text-slate-700">
+                  {initiative.current} из {initiative.target}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
         <h3 className="text-xl font-semibold text-slate-950">Цели и метрики</h3>
         <p className="mt-1 text-sm text-slate-500">
           Итоговый результат по целям квартала
@@ -3929,6 +3970,56 @@ export default function Home() {
         ? "Обсуждайте результаты и риски, фиксируйте решения по вопросам или отдельно от них."
         : "Проверьте основные результаты и решения, затем сохраните итоговый отчет.";
 
+  const metricsForInitiatives = (initiativeIds: string[]) => {
+    const linkedMetricNames = new Set(
+      initiativeItems
+        .filter((initiative) => initiativeIds.includes(initiative.id))
+        .flatMap((initiative) => initiative.linkedMetrics),
+    );
+    return metricCatalog
+      .filter((metric) => linkedMetricNames.has(metric.name))
+      .map((metric) => ({ ...metric }));
+  };
+
+  const handleQuarterChange = (nextIndex: number) => {
+    setQuarterIndex(nextIndex);
+    if (nextIndex < 1) {
+      const historicalIds = initiatives
+        .slice(0, 3)
+        .map((initiative) => initiative.id);
+      setMode("Итоги");
+      setQbrInitiativeIds(historicalIds);
+      setMetricItems(metricsForInitiatives(historicalIds));
+      setQuestions(
+        initialQbrQuestions.map((item, index) => ({
+          ...item,
+          decision:
+            item.decision ||
+            [
+              "Выделить 0,5 FTE аналитика из центра компетенций на следующий квартал.",
+              "Подтвердить поэтапную поставку витрин с контрольной точкой раз в две недели.",
+            ][index] ||
+            "Решение зафиксировано по итогам ревью.",
+        })),
+      );
+      return;
+    }
+    if (nextIndex > 1) {
+      setMode("Подготовка");
+      setQbrInitiativeIds([]);
+      setMetricItems([]);
+      setQuestions([]);
+      return;
+    }
+    const currentIds = initiatives
+      .slice(0, 4)
+      .map((initiative) => initiative.id);
+    setMode("Подготовка");
+    setQbrInitiativeIds(currentIds);
+    setMetricItems(metricsForInitiatives(currentIds));
+    setQuestions(initialQbrQuestions.map((item) => ({ ...item })));
+  };
+
   const openQbr = (name: string, status: string) => {
     setGlobalPage("Мои QBR");
     setQbrName(name);
@@ -4056,19 +4147,9 @@ export default function Home() {
             <SidebarTrigger className="md:hidden" />
             {globalPage === "Мои QBR" ? (
               <div className="min-w-0">
-                <Select value={qbrName} onValueChange={setQbrName}>
-                  <SelectTrigger className="h-11 w-[220px] border border-slate-400 bg-white px-3 text-xl font-semibold text-slate-950 shadow-sm [&_[data-slot=select-value]]:text-slate-950 [&_svg]:text-slate-800 [&_svg]:opacity-100 sm:w-[300px] md:text-2xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Цифровые решения">
-                      Цифровые решения
-                    </SelectItem>
-                    <SelectItem value="Регистрация и онбординг">
-                      Регистрация и онбординг
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <h1 className="truncate text-xl font-semibold tracking-tight text-slate-950 md:text-2xl">
+                  {qbrName}
+                </h1>
               </div>
             ) : (
               <div className="min-w-0">
@@ -4085,7 +4166,7 @@ export default function Home() {
             {globalPage === "Мои QBR" && (
               <QuarterSwitcher
                 index={quarterIndex}
-                onChange={setQuarterIndex}
+                onChange={handleQuarterChange}
               />
             )}
             {globalPage === "Стратегия" && (
