@@ -90,8 +90,9 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -144,4 +145,13 @@ body {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+[data-slot="button"][data-size="xs"],
+[data-slot="button"][data-size="sm"],
+[data-slot="button"][data-size="default"],
+[data-slot="button"][data-size="lg"] {
+  height: 2.25rem;
+  padding-inline: 1rem;
+  border-radius: 0.5rem;
 }
