@@ -3870,34 +3870,45 @@ function QbrResults({
         <h3 className="text-xl font-semibold text-slate-950">
           Принятые решения
         </h3>
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="mt-4 space-y-3">
           {decisions.length ? (
-            decisions.map((item) => (
-              <article
-                key={item.id}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-white"
-              >
-                <div className="border-b border-slate-200 bg-slate-50 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
-                    Вопрос
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">
-                    {item.title}
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                    {item.question}
-                  </p>
-                </div>
-                <div className="p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700">
-                    Принятое решение
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">
-                    {item.decision}
-                  </p>
-                </div>
-              </article>
-            ))
+            decisions.map((item, index) => {
+              const hasQuestion =
+                item.question !== "Решение без привязки к вопросу";
+              return (
+                <article
+                  key={item.id}
+                  className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-[32px_minmax(0,1fr)]"
+                >
+                  <span className="grid size-8 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-slate-950">
+                      {item.title}
+                    </h4>
+                    {hasQuestion && (
+                      <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                          Вопрос
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          {item.question}
+                        </p>
+                      </div>
+                    )}
+                    <div className={hasQuestion ? "mt-3" : "mt-2"}>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700">
+                        Принятое решение
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-slate-700">
+                        {item.decision}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              );
+            })
           ) : (
             <p className="text-sm text-slate-500">
               Решения еще не зафиксированы.
