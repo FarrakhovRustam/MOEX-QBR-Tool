@@ -37,7 +37,7 @@ import {
   Users,
   LogOut,
 } from "lucide-react";
-import { authService, isSupabaseConfigured, type AuthSession } from "@/lib/supabase";
+import { authService, isSupabaseConfigured, loadWorkspaceState, saveWorkspaceState, type AuthSession } from "@/lib/supabase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -4137,6 +4137,39 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     initialQbrQuestions.map((item) => ({ ...item })),
   );
   const qbrSnapshots = useRef<Record<string, QbrSnapshot>>({});
+  const persistenceReady = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    loadWorkspaceState<{
+      globalPage: GlobalPage; mode: string; qbrName: string; quarterIndex: number;
+      metricCatalog: MetricItem[]; metricItems: MetricItem[]; teams: TeamItem[];
+      initiativeItems: InitiativeItem[]; qbrInitiativeIds: string[];
+      questions: QbrQuestion[]; snapshots: Record<string, QbrSnapshot>;
+    }>().then((saved) => {
+      if (!active) return;
+      if (saved) {
+        setGlobalPage(saved.globalPage); setMode(saved.mode); setQbrName(saved.qbrName);
+        setQuarterIndex(saved.quarterIndex); setMetricCatalog(saved.metricCatalog);
+        setMetricItems(saved.metricItems); setTeams(saved.teams);
+        setInitiativeItems(saved.initiativeItems); setQbrInitiativeIds(saved.qbrInitiativeIds);
+        setQuestions(saved.questions); qbrSnapshots.current = saved.snapshots ?? {};
+      }
+      persistenceReady.current = true;
+    }).catch(() => { persistenceReady.current = true; });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!persistenceReady.current) return;
+    const timer = window.setTimeout(() => {
+      saveWorkspaceState({
+        globalPage, mode, qbrName, quarterIndex, metricCatalog, metricItems, teams,
+        initiativeItems, qbrInitiativeIds, questions, snapshots: qbrSnapshots.current,
+      }).catch(() => undefined);
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [globalPage, mode, qbrName, quarterIndex, metricCatalog, metricItems, teams, initiativeItems, qbrInitiativeIds, questions]);
   const quarter = quarters[quarterIndex];
   const selectedQbrInitiatives = initiativeItems.filter((initiative) =>
     qbrInitiativeIds.includes(initiative.id),
