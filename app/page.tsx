@@ -4102,7 +4102,7 @@ function PlaceholderPage({ title }: { title: string }) {
 }
 
 function Dashboard({ onSignOut }: { onSignOut: () => void }) {
-  const [globalPage, setGlobalPage] = useState<GlobalPage>("Мои QBR");
+  const [globalPage, setGlobalPage] = useState<GlobalPage>("Стратегия");
   const [mode, setMode] = useState("Подготовка");
   const [qbrName, setQbrName] = useState("Цифровые решения");
   const [quarterIndex, setQuarterIndex] = useState(1);
@@ -4149,7 +4149,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     }>().then((saved) => {
       if (!active) return;
       if (saved) {
-        setGlobalPage(saved.globalPage); setMode(saved.mode); setQbrName(saved.qbrName);
+        setGlobalPage("Стратегия"); setMode(saved.mode); setQbrName(saved.qbrName);
         setQuarterIndex(saved.quarterIndex); setMetricCatalog(saved.metricCatalog);
         setMetricItems(saved.metricItems); setTeams(saved.teams);
         setInitiativeItems(saved.initiativeItems); setQbrInitiativeIds(saved.qbrInitiativeIds);
@@ -4309,7 +4309,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         <SidebarHeader className="border-b border-white/10 px-3 py-4">
           <div className="flex h-10 items-center gap-3 px-1">
             <img
-              src="/favicon.svg"
+              src="/moex-logo.jpg"
               alt="MOEX"
               className="size-9 shrink-0 rounded-lg bg-white object-contain"
             />
@@ -4650,7 +4650,7 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (session: AuthSession) => voi
     <main className="grid min-h-screen place-items-center bg-[#f3f5f8] p-5">
       <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
         <div className="mb-8 flex items-center gap-4">
-          <img src="/favicon.svg" alt="Графический логотип MOEX" className="size-14 shrink-0 object-contain" />
+          <img src="/moex-logo.jpg" alt="Графический логотип MOEX" className="size-14 shrink-0 rounded-xl object-cover" />
           <div><p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-700">MOEX</p><h1 className="mt-1 text-xl font-semibold text-slate-950">QBR Tool</h1><p className="text-sm text-slate-500">Quarterly Business Review</p></div>
         </div>
         <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Вход в систему</h2>

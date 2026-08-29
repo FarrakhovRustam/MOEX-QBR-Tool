@@ -6,8 +6,9 @@ export const metadata: Metadata = {
   description:
     "Интерактивный прототип системы квартального ревью продуктовых команд.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/moex-logo.jpg",
+    shortcut: "/moex-logo.jpg",
+    apple: "/moex-logo.jpg",
   },
 };
 
