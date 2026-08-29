@@ -1,0 +1,7 @@
+project_id = "moex-qbr-tool"
+
+[functions.ai-qbr-analysis]
+verify_jwt = true
+
+[functions.web]
+verify_jwt = false
