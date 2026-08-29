@@ -4649,15 +4649,15 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (session: AuthSession) => voi
   return (
     <main className="grid min-h-screen place-items-center bg-[#f3f5f8] p-5">
       <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
-        <div className="mb-8 flex items-center gap-3">
-          <img src="/favicon.svg" alt="MOEX" className="size-12 rounded-xl border border-slate-200 bg-white object-contain" />
-          <div><h1 className="text-xl font-semibold text-slate-950">MOEX QBR Tool</h1><p className="text-sm text-slate-500">Quarterly Business Review</p></div>
+        <div className="mb-8 flex items-center gap-4">
+          <img src="/favicon.svg" alt="Графический логотип MOEX" className="size-14 shrink-0 object-contain" />
+          <div><p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-700">MOEX</p><h1 className="mt-1 text-xl font-semibold text-slate-950">QBR Tool</h1><p className="text-sm text-slate-500">Quarterly Business Review</p></div>
         </div>
         <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Вход в систему</h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">Цели, метрики и инициативы продуктовых команд в едином квартальном обзоре.</p>
         <form onSubmit={submit} className="mt-7 space-y-5">
-          <div className="space-y-2"><Label htmlFor="login">Логин</Label><Input id="login" autoComplete="username" value={login} onChange={(e) => setLogin(e.target.value)} required /></div>
-          <div className="space-y-2"><Label htmlFor="password">Пароль</Label><Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
+          <div className="space-y-2"><Label htmlFor="login" className="font-semibold text-slate-800">Логин</Label><Input id="login" placeholder="Введите логин" autoComplete="username" value={login} onChange={(e) => setLogin(e.target.value)} required className="border-slate-300 bg-white text-slate-950 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/20" /></div>
+          <div className="space-y-2"><Label htmlFor="password" className="font-semibold text-slate-800">Пароль</Label><Input id="password" placeholder="Введите пароль" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required className="border-slate-300 bg-white text-slate-950 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/20" /></div>
           {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           <Button type="submit" disabled={pending} className="w-full bg-slate-950 text-white hover:bg-slate-800">{pending ? "Входим…" : "Войти"}</Button>
         </form>
