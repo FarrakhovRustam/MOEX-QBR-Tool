@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -132,6 +132,7 @@ type MetricItem = {
   goal: string;
   plan: string;
   fact: string;
+  direction: "increase" | "decrease";
   progress: number;
   status: "green" | "yellow" | "red";
   trend: string;
@@ -146,30 +147,144 @@ type QbrQuestion = {
   decision: string;
 };
 
+type QbrSnapshot = {
+  mode: string;
+  metricItems: MetricItem[];
+  initiativeItems: InitiativeItem[];
+  initiativeIds: string[];
+  questions: QbrQuestion[];
+};
+
+function parseNumericValue(value: string) {
+  const normalized = value
+    .replace(/\s/g, "")
+    .replace(",", ".")
+    .replace(/[^\d.-]/g, "");
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function calculateProgress(
+  target: string,
+  actual: string,
+  direction: "increase" | "decrease" = "increase",
+) {
+  const targetValue = parseNumericValue(target);
+  const actualValue = parseNumericValue(actual);
+  if (targetValue === null || actualValue === null || targetValue <= 0)
+    return 0;
+  if (direction === "decrease" && actualValue <= 0) return 0;
+  return Math.max(
+    0,
+    Math.round(
+      (direction === "decrease"
+        ? targetValue / actualValue
+        : actualValue / targetValue) * 100,
+    ),
+  );
+}
+
+function metricStatus(progress: number): MetricItem["status"] {
+  if (progress >= 100) return "green";
+  if (progress >= 85) return "yellow";
+  return "red";
+}
+
+function recalculateMetric(metric: MetricItem): MetricItem {
+  const progress = calculateProgress(
+    metric.plan,
+    metric.fact,
+    metric.direction,
+  );
+  return { ...metric, progress, status: metricStatus(progress) };
+}
+
+function recalculateInitiative(initiative: InitiativeItem): InitiativeItem {
+  return {
+    ...initiative,
+    progress: calculateProgress(initiative.target, initiative.current),
+  };
+}
+
+function cloneInitiatives(items: InitiativeItem[]) {
+  return items.map((item) => ({
+    ...item,
+    linkedMetrics: [...item.linkedMetrics],
+    employees: [...item.employees],
+    risks: item.risks.map((risk) => ({ ...risk })),
+  }));
+}
+
+function cloneMetrics(items: MetricItem[]) {
+  return items.map((item) => ({ ...item }));
+}
+
+function cloneQuestions(items: QbrQuestion[]) {
+  return items.map((item) => ({ ...item }));
+}
+
+function russianCount(
+  value: number,
+  forms: [string, string, string],
+) {
+  const mod100 = value % 100;
+  const mod10 = value % 10;
+  if (mod100 >= 11 && mod100 <= 14) return `${value} ${forms[2]}`;
+  if (mod10 === 1) return `${value} ${forms[0]}`;
+  if (mod10 >= 2 && mod10 <= 4) return `${value} ${forms[1]}`;
+  return `${value} ${forms[2]}`;
+}
+
+function calculateReviewReadiness(
+  metricItems: MetricItem[],
+  selectedInitiatives: InitiativeItem[],
+  questions: QbrQuestion[],
+) {
+  const metricNames = new Set(metricItems.map((metric) => metric.name));
+  const checks = [
+    selectedInitiatives.length > 0,
+    metricItems.length > 0,
+    metricItems.every(
+      (metric) =>
+        parseNumericValue(metric.plan) !== null &&
+        parseNumericValue(metric.fact) !== null,
+    ),
+    selectedInitiatives.every(
+      (initiative) =>
+        initiative.linkedMetrics.length > 0 &&
+        initiative.linkedMetrics.every((name) => metricNames.has(name)),
+    ),
+    selectedInitiatives.every(
+      (initiative) => initiative.owner && initiative.team && initiative.fte > 0,
+    ),
+    questions.length > 0,
+    selectedInitiatives.every((initiative) => initiative.status !== "Пауза"),
+  ];
+  return Math.round(
+    (checks.filter(Boolean).length / checks.length) * 100,
+  );
+}
+
 const quarters = [
   {
     label: "II квартал 2026",
     short: "II кв. 2026",
     phase: "Итоги зафиксированы",
-    completion: 100,
   },
   {
     label: "III квартал 2026",
     short: "III кв. 2026",
     phase: "Подготовка к ревью",
-    completion: 86,
   },
   {
     label: "IV квартал 2026",
     short: "IV кв. 2026",
     phase: "Формирование планов",
-    completion: 34,
   },
   {
     label: "I квартал 2027",
     short: "I кв. 2027",
     phase: "Плановый период",
-    completion: 8,
   },
 ] as const;
 
@@ -376,11 +491,11 @@ const initiatives: InitiativeItem[] = [
     goal: "Увеличить регулярное использование терминала",
     metric: "Активные пользователи терминала",
     linkedMetrics: ["Активные пользователи терминала"],
-    target: "1 000 клиентов",
-    current: "680 клиентов",
+    target: "10 сценариев",
+    current: "7 сценариев",
     status: "В работе",
     tone: "blue",
-    progress: 68,
+    progress: 70,
     owner: "Анна Смирнова",
     team: "AI-агенты",
     employees: ["Анна Смирнова", "Елена Петрова", "Сергей Ким"],
@@ -402,11 +517,11 @@ const initiatives: InitiativeItem[] = [
     goal: "Повысить конверсию в целевое действие",
     metric: "Конверсия в целевое действие",
     linkedMetrics: ["Конверсия в целевое действие"],
-    target: "18%",
-    current: "14,8%",
+    target: "5 сценариев",
+    current: "4 сценария",
     status: "В работе",
     tone: "blue",
-    progress: 82,
+    progress: 80,
     owner: "Алексей Иванов",
     team: "Регистрация и онбординг",
     employees: ["Алексей Иванов", "Ольга Морозова"],
@@ -470,7 +585,7 @@ const initiatives: InitiativeItem[] = [
     strategy: "Активное вовлечение конечного клиента",
     goal: "Сформировать продуктовое предложение ЦФА",
     metric: "Количество доступных продуктов",
-    linkedMetrics: ["Конверсия в целевое действие"],
+    linkedMetrics: ["Количество доступных продуктов ЦФА"],
     target: "4 продукта",
     current: "4 продукта",
     status: "Завершена",
@@ -489,11 +604,11 @@ const initiatives: InitiativeItem[] = [
     strategy: "Международный доступ",
     goal: "Построить технологический линк с ЕАЭС",
     metric: "Пройденные этапы интеграции",
-    linkedMetrics: ["Доступность сервиса"],
+    linkedMetrics: ["Пройденные этапы интеграции"],
     target: "5 этапов",
     current: "1 этап",
     status: "Не начато",
-    tone: "yellow",
+    tone: "slate",
     progress: 20,
     owner: "Дмитрий Соколов",
     team: "Международная интеграция",
@@ -527,6 +642,7 @@ const strategicMetrics: MetricItem[] = [
     goal: "Увеличить регулярное использование терминала",
     plan: "50 тыс.",
     fact: "52,4 тыс.",
+    direction: "increase",
     progress: 105,
     status: "green",
     trend: "+22%",
@@ -543,6 +659,7 @@ const strategicMetrics: MetricItem[] = [
     goal: "Повысить конверсию в целевое действие",
     plan: "18%",
     fact: "16,3%",
+    direction: "increase",
     progress: 91,
     status: "yellow",
     trend: "+2,2 п.п.",
@@ -559,6 +676,7 @@ const strategicMetrics: MetricItem[] = [
     goal: "Сократить запуск продуктового эксперимента",
     plan: "7 дней",
     fact: "9 дней",
+    direction: "decrease",
     progress: 78,
     status: "red",
     trend: "−17%",
@@ -574,6 +692,7 @@ const strategicMetrics: MetricItem[] = [
     goal: "Повысить надежность клиентских сервисов",
     plan: "99,95%",
     fact: "99,97%",
+    direction: "increase",
     progress: 100,
     status: "green",
     trend: "+0,06 п.п.",
@@ -589,6 +708,7 @@ const strategicMetrics: MetricItem[] = [
     goal: "Увеличить число активных эмитентов",
     plan: "24",
     fact: "18",
+    direction: "increase",
     progress: 75,
     status: "yellow",
     trend: "+4",
@@ -604,11 +724,44 @@ const strategicMetrics: MetricItem[] = [
     goal: "Снизить операционную нагрузку",
     plan: "65%",
     fact: "58%",
+    direction: "increase",
     progress: 89,
     status: "yellow",
     trend: "+8 п.п.",
     initiatives: 0,
     source: "DWH",
+  },
+  {
+    id: "M-107",
+    name: "Количество доступных продуктов ЦФА",
+    category: "Стратегическая",
+    description: "Количество продуктов ЦФА, доступных клиентам на платформе.",
+    strategy: "Активное вовлечение конечного клиента",
+    goal: "Сформировать продуктовое предложение ЦФА",
+    plan: "4 продукта",
+    fact: "4 продукта",
+    direction: "increase",
+    progress: 100,
+    status: "green",
+    trend: "+2",
+    initiatives: 1,
+    source: "DWH",
+  },
+  {
+    id: "M-108",
+    name: "Пройденные этапы интеграции",
+    category: "Операционная",
+    description: "Количество завершенных этапов технологической интеграции.",
+    strategy: "Международный доступ",
+    goal: "Построить технологический линк с ЕАЭС",
+    plan: "5 этапов",
+    fact: "1 этап",
+    direction: "increase",
+    progress: 20,
+    status: "red",
+    trend: "",
+    initiatives: 1,
+    source: "Вручную",
   },
 ];
 
@@ -1005,14 +1158,14 @@ function InitiativesTable({
             <TableHead className="w-[165px] text-xs text-slate-600">
               Стратегия
             </TableHead>
-            <TableHead className="w-[180px] text-xs text-slate-600">
+            <TableHead className="w-[165px] text-xs text-slate-600">
               Ключевая метрика
             </TableHead>
             <TableHead className="w-[125px] text-xs text-slate-600">
               Статус
             </TableHead>
-            <TableHead className="w-[105px] text-xs text-slate-600">
-              Прогресс
+            <TableHead className="w-[145px] text-xs text-slate-600">
+              Прогресс инициативы
             </TableHead>
             <TableHead className="w-[95px] text-xs text-slate-600">
               Риски
@@ -1031,6 +1184,16 @@ function InitiativesTable({
           </TableRow>
         </TableHeader>
         <TableBody>
+          {!items.length && (
+            <TableRow>
+              <TableCell
+                colSpan={showActions ? 9 : 8}
+                className="h-28 text-center text-sm text-slate-500"
+              >
+                Инициативы не найдены. Измените фильтры или добавьте инициативу.
+              </TableCell>
+            </TableRow>
+          )}
           {items.map((item) => (
             <TableRow key={item.id} className="border-slate-100 align-top">
               <TableCell className="whitespace-normal break-words py-4 pl-5">
@@ -1070,24 +1233,6 @@ function InitiativesTable({
                     </p>
                   ))}
                 </div>
-                <div className="mt-2 text-xs leading-4 text-slate-400">
-                  <p>Цель: {item.target}</p>
-                  {editable ? (
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <span className="shrink-0">Сейчас:</span>
-                      <Input
-                        value={item.current}
-                        onChange={(event) =>
-                          onCurrentChange?.(item.id, event.target.value)
-                        }
-                        className="h-8 min-w-0 bg-white px-2 text-xs font-medium text-slate-900"
-                        aria-label={`Фактическое значение ${item.title}`}
-                      />
-                    </div>
-                  ) : (
-                    <p className="mt-1">Сейчас: {item.current}</p>
-                  )}
-                </div>
               </TableCell>
               <TableCell>
                 {editable ? (
@@ -1113,10 +1258,28 @@ function InitiativesTable({
                 )}
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-2">
+                <div className="text-xs leading-4 text-slate-500">
+                  <p>План: {item.target}</p>
+                  {editable ? (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span className="shrink-0">Факт:</span>
+                      <Input
+                        value={item.current}
+                        onChange={(event) =>
+                          onCurrentChange?.(item.id, event.target.value)
+                        }
+                        className="h-8 min-w-0 bg-white px-2 text-xs font-medium text-slate-900"
+                        aria-label={`Фактический прогресс ${item.title}`}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-1">Факт: {item.current}</p>
+                  )}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
                   <Progress
-                    value={item.progress}
-                    className="h-1.5 w-12 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-800"
+                    value={Math.min(item.progress, 100)}
+                    className="h-1.5 flex-1 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-slate-800"
                   />
                   <span className="text-xs font-semibold text-slate-700">
                     {item.progress}%
@@ -1454,7 +1617,20 @@ function InitiativesPage({
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label>Цель</Label>
-              <Select value={goalDraft} onValueChange={setGoalDraft}>
+              <Select
+                value={goalDraft}
+                onValueChange={(value) => {
+                  setGoalDraft(value);
+                  setMetricsDraft((selected) =>
+                    selected.filter((name) =>
+                      metricCatalog.some(
+                        (metric) =>
+                          metric.name === name && metric.goal === value,
+                      ),
+                    ),
+                  );
+                }}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Выберите одну цель" />
                 </SelectTrigger>
@@ -1482,7 +1658,9 @@ function InitiativesPage({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[420px] max-w-[calc(100vw-2rem)]">
-                  {metricCatalog.map((metric) => (
+                  {metricCatalog
+                    .filter((metric) => metric.goal === goalDraft)
+                    .map((metric) => (
                     <DropdownMenuCheckboxItem
                       key={metric.id}
                       checked={metricsDraft.includes(metric.name)}
@@ -1499,7 +1677,12 @@ function InitiativesPage({
                     >
                       {metric.name}
                     </DropdownMenuCheckboxItem>
-                  ))}
+                    ))}
+                  {!goalDraft && (
+                    <p className="px-2 py-3 text-xs text-slate-500">
+                      Сначала выберите цель.
+                    </p>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -1593,9 +1776,11 @@ function InitiativesPage({
 function MetricsPage({
   items,
   setItems,
+  onMetricRename,
 }: {
   items: MetricItem[];
   setItems: (items: MetricItem[]) => void;
+  onMetricRename: (previousName: string, nextName: string) => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1606,6 +1791,11 @@ function MetricsPage({
   const [sourceMode, setSourceMode] = useState("manual");
   const [searchQuery, setSearchQuery] = useState("");
   const query = searchQuery.trim().toLowerCase();
+  const duplicateName = items.some(
+    (metric) =>
+      metric.id !== editingId &&
+      metric.name.trim().toLowerCase() === nameDraft.trim().toLowerCase(),
+  );
   const filteredItems = items.filter(
     (metric) =>
       !query ||
@@ -1638,25 +1828,29 @@ function MetricsPage({
     if (
       !nameDraft.trim() ||
       !descriptionDraft.trim() ||
+      duplicateName ||
       (sourceMode === "manual" && !valueDraft.trim())
     )
       return;
     if (editingId) {
+      const previousMetric = items.find((metric) => metric.id === editingId);
+      const nextName = nameDraft.trim();
       setItems(
         items.map((metric) =>
           metric.id === editingId
-            ? {
+            ? recalculateMetric({
                 ...metric,
-                name: nameDraft.trim(),
+                name: nextName,
                 description: descriptionDraft.trim(),
                 category: categoryDraft,
                 fact: sourceMode === "manual" ? valueDraft.trim() : metric.fact,
-                plan: sourceMode === "manual" ? valueDraft.trim() : metric.plan,
                 source: sourceMode === "manual" ? "Вручную" : metric.source,
-              }
+              })
             : metric,
         ),
       );
+      if (previousMetric && previousMetric.name !== nextName)
+        onMetricRename(previousMetric.name, nextName);
     } else {
       setItems([
         ...items,
@@ -1669,6 +1863,7 @@ function MetricsPage({
           goal: nameDraft.trim(),
           plan: valueDraft.trim(),
           fact: valueDraft.trim(),
+          direction: "increase",
           progress: 100,
           status: "green",
           trend: "",
@@ -1803,6 +1998,11 @@ function MetricsPage({
                 onChange={(event) => setNameDraft(event.target.value)}
                 placeholder="Название метрики"
               />
+              {duplicateName && (
+                <p className="text-xs text-rose-600">
+                  Метрика с таким названием уже существует.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="new-metric-description">Описание</Label>
@@ -1862,6 +2062,7 @@ function MetricsPage({
               disabled={
                 !nameDraft.trim() ||
                 !descriptionDraft.trim() ||
+                duplicateName ||
                 (!editingId && sourceMode !== "manual") ||
                 (sourceMode === "manual" && !valueDraft.trim())
               }
@@ -2378,6 +2579,16 @@ function MetricsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
+          {!items.length && (
+            <TableRow>
+              <TableCell
+                colSpan={editable ? 8 : 7}
+                className="h-28 text-center text-sm text-slate-500"
+              >
+                Метрики появятся автоматически после добавления инициативы.
+              </TableCell>
+            </TableRow>
+          )}
           {items.map((metric) => {
             const inheritedRisks = linkedInitiatives
               .filter((initiative) =>
@@ -2394,12 +2605,12 @@ function MetricsTable({
                         {metric.name}
                       </p>
                       <p className="mt-1 text-xs text-slate-400">
-                        {
+                        {russianCount(
                           linkedInitiatives.filter((initiative) =>
                             initiative.linkedMetrics.includes(metric.name),
-                          ).length
-                        }{" "}
-                        инициативы
+                          ).length,
+                          ["инициатива", "инициативы", "инициатив"],
+                        )}
                       </p>
                     </div>
                   </div>
@@ -2435,14 +2646,9 @@ function MetricsTable({
                       aria-label={`Фактическое значение ${metric.name}`}
                     />
                   ) : (
-                    <div>
-                      <p className="font-semibold text-slate-950">
-                        {metric.fact}
-                      </p>
-                      <p className="mt-1 text-xs font-medium text-emerald-600">
-                        {metric.trend}
-                      </p>
-                    </div>
+                    <p className="font-semibold text-slate-950">
+                      {metric.fact}
+                    </p>
                   )}
                 </TableCell>
                 <TableCell>
@@ -2512,11 +2718,13 @@ function QbrPeriodOverview({
   metricItems,
   initiativeItems,
   qbrInitiativeIds,
+  readiness,
 }: {
   quarterIndex: number;
   metricItems: MetricItem[];
   initiativeItems: InitiativeItem[];
   qbrInitiativeIds: string[];
+  readiness: number;
 }) {
   const quarter = quarters[quarterIndex];
   const selectedInitiatives = initiativeItems.filter((initiative) =>
@@ -2538,6 +2746,23 @@ function QbrPeriodOverview({
       unlinkedInitiatives.length * 10 -
       metricItems.filter((metric) => metric.source === "Вручную").length * 6,
   );
+  const strategicImpact = metricItems.length
+    ? Math.round(
+        metricItems.reduce(
+          (sum, metric) => sum + Math.min(metric.progress, 100),
+          0,
+        ) / metricItems.length,
+      )
+    : 0;
+  const supportedGoals = new Set(
+    selectedInitiatives.map((initiative) => initiative.goal),
+  );
+  const weakestMetric = [...metricItems].sort(
+    (a, b) => a.progress - b.progress,
+  )[0];
+  const strongestMetric = [...metricItems].sort(
+    (a, b) => b.progress - a.progress,
+  )[0];
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 pt-5 md:px-7">
       <section className="overflow-hidden rounded-2xl border border-slate-200 border-l-4 border-l-violet-500 bg-white">
@@ -2563,12 +2788,14 @@ function QbrPeriodOverview({
             </Button>
           </div>
           <h3 className="mt-5 text-xl font-semibold text-slate-950">
-            Команда ускорила рост, но не достигла целевой конверсии
+            {weakestMetric
+              ? `Основная точка внимания — ${weakestMetric.name.toLowerCase()}`
+              : "Для AI-обзора недостаточно данных"}
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Рост использования терминала опережает план. Основной фокус QBR —
-            снять ограничения по миграции данных, улучшить связность метрик с
-            инициативами и зафиксировать решения по аналитическому ресурсу.
+            {strongestMetric && weakestMetric
+              ? `Лучший результат периода: «${strongestMetric.name}» — ${strongestMetric.progress}% плана. «${weakestMetric.name}» выполнена на ${weakestMetric.progress}%. На ревью стоит согласовать действия по отстающим показателям и зафиксировать решения по открытым вопросам.`
+              : "Добавьте инициативы, метрики и вопросы, затем обновите AI-обзор."}
           </p>
         </div>
         <div className="grid lg:grid-cols-3">
@@ -2578,11 +2805,11 @@ function QbrPeriodOverview({
                 Готовность к ревью
               </p>
               <span className="text-lg font-bold text-slate-950">
-                {quarter.completion}%
+                {readiness}%
               </span>
             </div>
             <Progress
-              value={quarter.completion}
+              value={readiness}
               className="mt-3 h-2 bg-slate-200 [&_[data-slot=progress-indicator]]:bg-[#ef3e42]"
             />
             <div className="mt-4 space-y-2 text-xs">
@@ -2590,7 +2817,7 @@ function QbrPeriodOverview({
                 <Check className="size-3.5" /> Метрики обновлены
               </span>
               <span className="flex items-center gap-1.5 text-emerald-700">
-                <Check className="size-3.5" /> Достижения заполнены
+                <Check className="size-3.5" /> Инициативы и вопросы заполнены
               </span>
               <span className="flex items-center gap-1.5 text-amber-700">
                 <AlertTriangle className="size-3.5" /> 2 замечания AI
@@ -2637,20 +2864,29 @@ function QbrPeriodOverview({
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                 Влияние на стратегические цели
               </p>
-              <span className="text-lg font-bold text-blue-700">74%</span>
+              <span className="text-lg font-bold text-blue-700">
+                {strategicImpact}%
+              </span>
             </div>
             <Progress
-              value={74}
+              value={strategicImpact}
               className="mt-3 h-2 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-blue-600"
             />
             <div className="mt-4 space-y-2 text-xs text-slate-600">
               <p className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
-                3 стратегические цели поддержаны инициативами
+                {russianCount(supportedGoals.size, [
+                  "стратегическая цель поддержана",
+                  "стратегические цели поддержаны",
+                  "стратегических целей поддержаны",
+                ])}{" "}
+                инициативами
               </p>
               <p className="flex gap-2">
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
-                Международный доступ пока имеет низкий вклад
+                {weakestMetric
+                  ? `Минимальный вклад: ${weakestMetric.name} — ${weakestMetric.progress}%`
+                  : "Добавьте метрики, чтобы оценить вклад"}
               </p>
             </div>
           </div>
@@ -2692,13 +2928,9 @@ function QbrOverview({
   const selectedInitiatives = initiativeItems.filter((initiative) =>
     qbrInitiativeIds.includes(initiative.id),
   );
-  const availableMetrics = metricCatalog.filter(
-    (metric) => !metricItems.some((item) => item.id === metric.id),
-  );
   const availableInitiatives = initiativeItems.filter(
     (initiative) => !qbrInitiativeIds.includes(initiative.id),
   );
-  const [metricDialogOpen, setMetricDialogOpen] = useState(false);
   const [initiativeDialogOpen, setInitiativeDialogOpen] = useState(false);
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
   const [standaloneDecisionOpen, setStandaloneDecisionOpen] = useState(false);
@@ -2709,8 +2941,6 @@ function QbrOverview({
   const [ownerTeamInitiativeId, setOwnerTeamInitiativeId] = useState<
     string | null
   >(null);
-  const [metricDraftId, setMetricDraftId] = useState("");
-  const [metricTargetDraft, setMetricTargetDraft] = useState("");
   const [riskLevel, setRiskLevel] = useState<RiskLevel>("medium");
   const [riskName, setRiskName] = useState("");
   const [riskDescription, setRiskDescription] = useState("");
@@ -2729,22 +2959,11 @@ function QbrOverview({
   const updateMetric = (id: string, patch: Partial<MetricItem>) =>
     setMetricItems(
       metricItems.map((metric) =>
-        metric.id === id ? { ...metric, ...patch } : metric,
+        metric.id === id
+          ? recalculateMetric({ ...metric, ...patch })
+          : metric,
       ),
     );
-  const addMetric = () => {
-    const catalogMetric = metricCatalog.find(
-      (metric) => metric.id === metricDraftId,
-    );
-    if (!catalogMetric) return;
-    setMetricItems([
-      ...metricItems,
-      { ...catalogMetric, plan: metricTargetDraft || catalogMetric.plan },
-    ]);
-    setMetricDialogOpen(false);
-    setMetricDraftId("");
-    setMetricTargetDraft("");
-  };
   const addInitiativeToQbr = (initiativeId: string) => {
     const initiative = initiativeItems.find((item) => item.id === initiativeId);
     if (!initiative) return;
@@ -2898,16 +3117,6 @@ function QbrOverview({
                 цели
               </p>
             </div>
-            {editable ? (
-              <Button
-                onClick={() => setMetricDialogOpen(true)}
-                size="sm"
-                className="bg-slate-950 text-white hover:bg-slate-800"
-              >
-                <Plus />
-                Добавить метрику
-              </Button>
-            ) : null}
           </div>
           <div className="grid gap-4 bg-slate-50/50 p-4 xl:grid-cols-2">
             {metricItems.map((metric) => {
@@ -3091,7 +3300,7 @@ function QbrOverview({
             setInitiativeItems(
               initiativeItems.map((initiative) =>
                 initiative.id === id
-                  ? { ...initiative, current: value }
+                  ? recalculateInitiative({ ...initiative, current: value })
                   : initiative,
               ),
             )
@@ -3110,9 +3319,11 @@ function QbrOverview({
                             ? "red"
                             : status === "В работе"
                               ? "blue"
-                              : "yellow",
-                      progress:
-                        status === "Завершена" ? 100 : initiative.progress,
+                              : "slate",
+                      progress: calculateProgress(
+                        initiative.target,
+                        initiative.current,
+                      ),
                     }
                   : initiative,
               ),
@@ -3195,6 +3406,11 @@ function QbrOverview({
           ) : null}
         </div>
         <div className="divide-y divide-slate-100">
+          {!questions.length && (
+            <p className="p-8 text-center text-sm text-slate-500">
+              Вопросов пока нет. Добавьте темы, которые нужно обсудить на ревью.
+            </p>
+          )}
           {questions.map((item, index) => (
             <article
               key={item.id}
@@ -3257,63 +3473,6 @@ function QbrOverview({
           ))}
         </div>
       </section>
-
-      <Dialog open={metricDialogOpen} onOpenChange={setMetricDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Добавить целевую метрику</DialogTitle>
-            <DialogDescription>
-              Выберите метрику из справочника и задайте целевое значение для
-              квартала.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Метрика</Label>
-              <Select
-                value={metricDraftId}
-                onValueChange={(value) => {
-                  const metric = metricCatalog.find(
-                    (item) => item.id === value,
-                  );
-                  setMetricDraftId(value);
-                  setMetricTargetDraft(metric?.plan ?? "");
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Выберите метрику" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableMetrics.map((metric) => (
-                    <SelectItem key={metric.id} value={metric.id}>
-                      {metric.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="metric-target">Целевое значение</Label>
-              <Input
-                id="metric-target"
-                value={metricTargetDraft}
-                onChange={(event) => setMetricTargetDraft(event.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setMetricDialogOpen(false)}
-            >
-              Отмена
-            </Button>
-            <Button onClick={addMetric} disabled={!metricDraftId}>
-              Добавить в QBR
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={initiativeDialogOpen}
@@ -3692,6 +3851,12 @@ function QbrResults({
   const completedMetrics = metricItems.filter(
     (metric) => metric.progress >= 100,
   ).length;
+  const strongestMetric = [...metricItems].sort(
+    (a, b) => b.progress - a.progress,
+  )[0];
+  const weakestMetric = [...metricItems].sort(
+    (a, b) => a.progress - b.progress,
+  )[0];
   return (
     <main className="mx-auto w-full max-w-[1480px] p-4 md:p-7">
       <div>
@@ -3714,15 +3879,14 @@ function QbrResults({
           </p>
         </div>
         <h3 className="mt-4 text-xl font-semibold text-slate-950">
-          Команда сохранила темп роста, но квартал завершен с точками внимания
-          по конверсии и миграции данных
+          {metricItems.length
+            ? `Выполнено ${completedMetrics} из ${metricItems.length} целевых метрик`
+            : "В периоде не было целевых метрик"}
         </h3>
         <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">
-          Выполнено {completedMetrics} из {metricItems.length} целевых метрик.
-          Наибольший вклад обеспечили инициативы цифрового терминала и сервисов
-          для эмитентов. На следующий период рекомендуется закрепить владельца
-          аналитического ресурса и устранить ограничения, влияющие на конверсию
-          регистрации.
+          {strongestMetric && weakestMetric
+            ? `Лучший результат — «${strongestMetric.name}» (${strongestMetric.progress}% плана). Основная зона внимания — «${weakestMetric.name}» (${weakestMetric.progress}%). На ревью зафиксировано ${russianCount(decisions.length, ["решение", "решения", "решений"])}.`
+            : "Добавьте инициативы и метрики, чтобы сформировать содержательное AI-резюме."}
         </p>
       </section>
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -3941,7 +4105,7 @@ export default function Home() {
   const [qbrName, setQbrName] = useState("Цифровые решения");
   const [quarterIndex, setQuarterIndex] = useState(1);
   const [metricCatalog, setMetricCatalog] = useState<MetricItem[]>(() =>
-    strategicMetrics.map((metric) => ({ ...metric })),
+    strategicMetrics.map((metric) => recalculateMetric({ ...metric })),
   );
   const [metricItems, setMetricItems] = useState<MetricItem[]>(() => {
     const initialMetricNames = new Set(
@@ -3949,7 +4113,7 @@ export default function Home() {
     );
     return strategicMetrics
       .filter((metric) => initialMetricNames.has(metric.name))
-      .map((metric) => ({ ...metric }));
+      .map((metric) => recalculateMetric({ ...metric }));
   });
   const [teams, setTeams] = useState<TeamItem[]>(() =>
     initialTeams.map((team) => ({
@@ -3970,7 +4134,16 @@ export default function Home() {
   const [questions, setQuestions] = useState<QbrQuestion[]>(() =>
     initialQbrQuestions.map((item) => ({ ...item })),
   );
+  const qbrSnapshots = useRef<Record<string, QbrSnapshot>>({});
   const quarter = quarters[quarterIndex];
+  const selectedQbrInitiatives = initiativeItems.filter((initiative) =>
+    qbrInitiativeIds.includes(initiative.id),
+  );
+  const reviewReadiness = calculateReviewReadiness(
+    metricItems,
+    selectedQbrInitiatives,
+    questions,
+  );
   const questionsWithDecision = questions.filter((item) =>
     item.decision.trim(),
   ).length;
@@ -3998,9 +4171,12 @@ export default function Home() {
         ? "Обсуждайте результаты и риски, фиксируйте решения по вопросам или отдельно от них."
         : "Проверьте основные результаты и решения, затем сохраните итоговый отчет.";
 
-  const metricsForInitiatives = (initiativeIds: string[]) => {
+  const metricsForInitiatives = (
+    initiativeIds: string[],
+    portfolio: InitiativeItem[] = initiativeItems,
+  ) => {
     const linkedMetricNames = new Set(
-      initiativeItems
+      portfolio
         .filter((initiative) => initiativeIds.includes(initiative.id))
         .flatMap((initiative) => initiative.linkedMetrics),
     );
@@ -4009,49 +4185,84 @@ export default function Home() {
       .map((metric) => ({ ...metric }));
   };
 
+  const snapshotKey = (name: string, index: number) => `${name}:${index}`;
+  const saveCurrentSnapshot = () => {
+    qbrSnapshots.current[snapshotKey(qbrName, quarterIndex)] = {
+      mode,
+      metricItems: cloneMetrics(metricItems),
+      initiativeItems: cloneInitiatives(initiativeItems),
+      initiativeIds: [...qbrInitiativeIds],
+      questions: cloneQuestions(questions),
+    };
+  };
+  const createSnapshot = (
+    name: string,
+    index: number,
+    requestedMode?: string,
+  ): QbrSnapshot => {
+    const portfolio = cloneInitiatives(initiatives);
+    const initiativeIds =
+      index < 1
+        ? initiatives.slice(0, 3).map((initiative) => initiative.id)
+        : index > 1
+          ? []
+          : name === "Регистрация и онбординг"
+            ? ["IN-237"]
+            : initiatives.slice(0, 4).map((initiative) => initiative.id);
+    const snapshotQuestions =
+      index < 1
+        ? initialQbrQuestions.map((item, itemIndex) => ({
+            ...item,
+            decision:
+              item.decision ||
+              [
+                "Выделить 0,5 FTE аналитика из центра компетенций на следующий квартал.",
+                "Подтвердить поэтапную поставку витрин с контрольной точкой раз в две недели.",
+              ][itemIndex] ||
+              "Решение зафиксировано по итогам ревью.",
+          }))
+        : index > 1
+          ? []
+          : name === "Регистрация и онбординг"
+            ? [cloneQuestions(initialQbrQuestions)[0]]
+            : cloneQuestions(initialQbrQuestions);
+    return {
+      mode:
+        requestedMode ?? (index < 1 ? "Итоги" : index > 1 ? "Подготовка" : "Подготовка"),
+      metricItems: metricsForInitiatives(initiativeIds, portfolio),
+      initiativeItems: portfolio,
+      initiativeIds,
+      questions: snapshotQuestions,
+    };
+  };
+  const loadSnapshot = (snapshot: QbrSnapshot) => {
+    setMode(snapshot.mode);
+    setMetricItems(cloneMetrics(snapshot.metricItems));
+    setInitiativeItems(cloneInitiatives(snapshot.initiativeItems));
+    setQbrInitiativeIds([...snapshot.initiativeIds]);
+    setQuestions(cloneQuestions(snapshot.questions));
+  };
+
   const handleQuarterChange = (nextIndex: number) => {
+    saveCurrentSnapshot();
     setQuarterIndex(nextIndex);
-    if (nextIndex < 1) {
-      const historicalIds = initiatives
-        .slice(0, 3)
-        .map((initiative) => initiative.id);
-      setMode("Итоги");
-      setQbrInitiativeIds(historicalIds);
-      setMetricItems(metricsForInitiatives(historicalIds));
-      setQuestions(
-        initialQbrQuestions.map((item, index) => ({
-          ...item,
-          decision:
-            item.decision ||
-            [
-              "Выделить 0,5 FTE аналитика из центра компетенций на следующий квартал.",
-              "Подтвердить поэтапную поставку витрин с контрольной точкой раз в две недели.",
-            ][index] ||
-            "Решение зафиксировано по итогам ревью.",
-        })),
-      );
-      return;
-    }
-    if (nextIndex > 1) {
-      setMode("Подготовка");
-      setQbrInitiativeIds([]);
-      setMetricItems([]);
-      setQuestions([]);
-      return;
-    }
-    const currentIds = initiatives
-      .slice(0, 4)
-      .map((initiative) => initiative.id);
-    setMode("Подготовка");
-    setQbrInitiativeIds(currentIds);
-    setMetricItems(metricsForInitiatives(currentIds));
-    setQuestions(initialQbrQuestions.map((item) => ({ ...item })));
+    const key = snapshotKey(qbrName, nextIndex);
+    const snapshot =
+      qbrSnapshots.current[key] ?? createSnapshot(qbrName, nextIndex);
+    qbrSnapshots.current[key] = snapshot;
+    loadSnapshot(snapshot);
   };
 
   const openQbr = (name: string, status: string) => {
+    saveCurrentSnapshot();
     setGlobalPage("Мои QBR");
     setQbrName(name);
-    setMode(status);
+    const key = snapshotKey(name, quarterIndex);
+    const snapshot =
+      qbrSnapshots.current[key] ??
+      createSnapshot(name, quarterIndex, status);
+    qbrSnapshots.current[key] = snapshot;
+    loadSnapshot(snapshot);
   };
 
   return (
@@ -4063,7 +4274,7 @@ export default function Home() {
         <SidebarHeader className="border-b border-white/10 px-3 py-4">
           <div className="flex h-10 items-center gap-3 px-1">
             <img
-              src="https://s.rbk.ru/v1_companies_s3/media/trademarks/d9413144-9ec6-48aa-ab15-570e4cdbaa3f.jpg"
+              src="/favicon.svg"
               alt="MOEX"
               className="size-9 shrink-0 rounded-lg bg-white object-contain"
             />
@@ -4111,13 +4322,14 @@ export default function Home() {
                     name: "Цифровые решения",
                     owner: "Алексей Иванов",
                     period: quarter.short,
-                    status: mode,
+                    status: qbrName === "Цифровые решения" ? mode : "Подготовка",
                   },
                   {
                     name: "Регистрация и онбординг",
                     owner: "Ольга Морозова",
                     period: "III кв. 2026",
-                    status: "Ревью",
+                    status:
+                      qbrName === "Регистрация и онбординг" ? mode : "Ревью",
                   },
                 ].map((review) => (
                   <SidebarMenuItem key={review.name}>
@@ -4220,7 +4432,31 @@ export default function Home() {
           <StrategyPage onOpenInitiatives={() => setGlobalPage("Инициативы")} />
         )}
         {globalPage === "Метрики" && (
-          <MetricsPage items={metricCatalog} setItems={setMetricCatalog} />
+          <MetricsPage
+            items={metricCatalog}
+            setItems={setMetricCatalog}
+            onMetricRename={(previousName, nextName) => {
+              setInitiativeItems(
+                initiativeItems.map((initiative) => ({
+                  ...initiative,
+                  metric:
+                    initiative.metric === previousName
+                      ? nextName
+                      : initiative.metric,
+                  linkedMetrics: initiative.linkedMetrics.map((name) =>
+                    name === previousName ? nextName : name,
+                  ),
+                })),
+              );
+              setMetricItems(
+                metricItems.map((metric) =>
+                  metric.name === previousName
+                    ? { ...metric, name: nextName }
+                    : metric,
+                ),
+              );
+            }}
+          />
         )}
         {globalPage === "Инициативы" && (
           <InitiativesPage
@@ -4261,12 +4497,13 @@ export default function Home() {
                     <div className="flex w-[220px] flex-col items-stretch gap-1.5">
                       <Button
                         onClick={() => setMode("Ревью")}
+                        disabled={reviewReadiness < 70}
                         className="bg-sky-500 text-white hover:bg-sky-600"
                       >
                         Начать ревью <ArrowRight className="size-5" />
                       </Button>
                       <p className="text-center text-xs font-medium text-slate-500">
-                        Готовность к ревью: {quarter.completion}%
+                        Готовность к ревью: {reviewReadiness}%
                       </p>
                     </div>
                   )}
@@ -4282,6 +4519,10 @@ export default function Home() {
                       </Button>
                       <Button
                         onClick={() => setMode("Итоги")}
+                        disabled={
+                          questions.length > 0 &&
+                          questionsWithDecision < questions.length
+                        }
                         className="bg-sky-500 text-white hover:bg-sky-600"
                       >
                         Завершить ревью <ArrowRight className="size-5" />
@@ -4312,6 +4553,7 @@ export default function Home() {
                 metricItems={metricItems}
                 initiativeItems={initiativeItems}
                 qbrInitiativeIds={qbrInitiativeIds}
+                readiness={reviewReadiness}
               />
             )}
             {mode === "Итоги" ? (
