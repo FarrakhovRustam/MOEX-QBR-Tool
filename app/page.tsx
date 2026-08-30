@@ -4754,7 +4754,15 @@ function Dashboard({
                     </div>
                   )}
                   {mode === "Итоги" && (
-                    <div className="flex w-[220px] items-start justify-end">
+                    <div className="flex w-[220px] flex-col items-stretch gap-2">
+                      <Button
+                        onClick={() => setMode("Подготовка")}
+                        variant="outline"
+                        className="border-slate-300 bg-white text-slate-600 hover:bg-slate-100"
+                      >
+                        <ArrowLeft className="size-5" />
+                        Вернуть в подготовку
+                      </Button>
                       <Button
                         onClick={() => window.print()}
                         className="w-full bg-slate-950 text-white hover:bg-slate-800"
