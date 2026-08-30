@@ -23,7 +23,7 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
     },
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.msg ?? body.message ?? body.error_description ?? "Ошибка запроса");
+  if (!response.ok) throw new Error(body.msg ?? body.message ?? body.error_description ?? body.error ?? "Ошибка запроса");
   return body as T;
 }
 
@@ -65,9 +65,16 @@ export async function saveWorkspaceState(state: unknown) {
   }, session.access_token);
 }
 
-export async function runAiAnalysis(periodId: string) {
+export async function runAiAnalysis(year: number, quarter: number) {
   const session = authService.session();
   if (!session) throw new Error("Требуется вход");
+  const periods = await request<Array<{ id: string }>>(
+    `/rest/v1/qbr_periods?select=id&year=eq.${year}&quarter=eq.${quarter}&limit=1`,
+    {},
+    session.access_token,
+  );
+  const periodId = periods[0]?.id;
+  if (!periodId) throw new Error("Период QBR не найден в Supabase");
   return request<{ result: unknown }>("/functions/v1/ai-qbr-analysis", {
     method: "POST", body: JSON.stringify({ periodId }),
   }, session.access_token);

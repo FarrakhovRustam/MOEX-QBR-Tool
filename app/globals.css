@@ -163,3 +163,28 @@ a {
 [data-slot="table-body"] [data-slot="table-row"]:hover {
   background-color: rgb(248 250 252 / 0.65);
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: white !important;
+    color: #0f172a !important;
+  }
+
+  main,
+  section,
+  article {
+    break-inside: avoid;
+  }
+
+  [data-slot="sidebar-inset"] {
+    margin: 0 !important;
+    width: 100% !important;
+    background: white !important;
+  }
+}

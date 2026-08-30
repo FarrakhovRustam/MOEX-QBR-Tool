@@ -25,6 +25,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   ListChecks,
+  LoaderCircle,
   Pencil,
   Plus,
   Rocket,
@@ -37,7 +38,14 @@ import {
   Users,
   LogOut,
 } from "lucide-react";
-import { authService, isSupabaseConfigured, loadWorkspaceState, saveWorkspaceState, type AuthSession } from "@/lib/supabase";
+import {
+  authService,
+  isSupabaseConfigured,
+  loadWorkspaceState,
+  runAiAnalysis,
+  saveWorkspaceState,
+  type AuthSession,
+} from "@/lib/supabase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -631,6 +639,51 @@ const initiatives: InitiativeItem[] = [
       },
     ],
   },
+  {
+    id: "IN-260",
+    trackerUrl: "https://tracker.moex.example/IN-260",
+    title: "Автоматизация сверки клиентских операций",
+    strategy: "Катализатор · Современные технологии",
+    goal: "Снизить операционную нагрузку",
+    metric: "Доля автоматизированных операций",
+    linkedMetrics: ["Доля автоматизированных операций"],
+    target: "65%",
+    current: "42%",
+    status: "В работе",
+    tone: "blue",
+    progress: 65,
+    owner: "Мария Орлова",
+    team: "Data Platform",
+    employees: ["Мария Орлова", "Павел Егоров"],
+    fte: 2,
+    risks: [],
+  },
+  {
+    id: "IN-263",
+    trackerUrl: "https://tracker.moex.example/IN-263",
+    title: "Онбординг новых эмитентов",
+    strategy: "Развитие рынков капитала",
+    goal: "Увеличить число активных эмитентов",
+    metric: "Новые эмитенты на платформе",
+    linkedMetrics: ["Новые эмитенты на платформе"],
+    target: "24 эмитента",
+    current: "8 эмитентов",
+    status: "Не начато",
+    tone: "slate",
+    progress: 33,
+    owner: "Алексей Иванов",
+    team: "Регистрация и онбординг",
+    employees: ["Алексей Иванов", "Ольга Морозова"],
+    fte: 2,
+    risks: [
+      {
+        id: "R-108",
+        level: "medium",
+        name: "Юридические согласования",
+        description: "Требуется согласовать сокращенный пакет документов",
+      },
+    ],
+  },
 ];
 
 const strategicMetrics: MetricItem[] = [
@@ -1107,14 +1160,15 @@ function RiskCounters({ risks }: { risks: InitiativeRisk[] }) {
     : "Рисков нет";
   return (
     <span
-      className={`relative inline-grid size-8 shrink-0 place-items-center ${risks.length ? "text-rose-700" : "text-slate-500"}`}
+      className={`relative inline-grid h-8 w-9 shrink-0 place-items-center ${risks.length ? "text-rose-700" : "text-slate-500"}`}
       title={title}
       aria-label={title}
     >
-      <AlertTriangle
-        className={`absolute size-8 ${risks.length ? "fill-rose-100 text-rose-300" : "fill-slate-100 text-slate-300"}`}
+      <span
+        aria-hidden="true"
+        className={`absolute top-0 h-0 w-0 border-x-[17px] border-b-[30px] border-x-transparent ${risks.length ? "border-b-rose-200" : "border-b-slate-200"}`}
       />
-      <span className="relative mt-1 text-[10px] font-bold">
+      <span className="relative mt-2 text-[10px] font-bold leading-none">
         {risks.length}
       </span>
     </span>
@@ -2729,6 +2783,9 @@ function QbrPeriodOverview({
   readiness: number;
 }) {
   const quarter = quarters[quarterIndex];
+  const [aiPending, setAiPending] = useState(false);
+  const [aiSummary, setAiSummary] = useState("");
+  const [aiError, setAiError] = useState("");
   const selectedInitiatives = initiativeItems.filter((initiative) =>
     qbrInitiativeIds.includes(initiative.id),
   );
@@ -2765,6 +2822,34 @@ function QbrPeriodOverview({
   const strongestMetric = [...metricItems].sort(
     (a, b) => b.progress - a.progress,
   )[0];
+  const refreshAiOverview = async () => {
+    setAiPending(true);
+    setAiError("");
+    try {
+      const year = quarterIndex === 3 ? 2027 : 2026;
+      const quarterNumber = [2, 3, 4, 1][quarterIndex];
+      const response = await runAiAnalysis(year, quarterNumber);
+      const result = response.result as {
+        executive_summary?: string;
+        recommendations?: string[] | string;
+      };
+      const recommendations = Array.isArray(result?.recommendations)
+        ? result.recommendations.join(" ")
+        : result?.recommendations;
+      setAiSummary(
+        result?.executive_summary || recommendations ||
+          "AI-анализ завершен. Рекомендации сохранены для текущего периода.",
+      );
+    } catch (error) {
+      setAiError(
+        error instanceof Error
+          ? error.message
+          : "Не удалось получить ответ AI. Повторите запрос.",
+      );
+    } finally {
+      setAiPending(false);
+    }
+  };
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 pt-5 md:px-7">
       <section className="overflow-hidden rounded-2xl border border-slate-200 border-l-4 border-l-violet-500 bg-white">
@@ -2784,20 +2869,45 @@ function QbrPeriodOverview({
                 <span className="text-xs text-slate-400">{quarter.phase}</span>
               </div>
             </div>
-            <Button className="bg-violet-600 text-white shadow-sm hover:bg-violet-700">
-              <Sparkles className="size-4" />
-              Обновить AI-обзор
+            <Button
+              onClick={refreshAiOverview}
+              disabled={aiPending}
+              className="min-w-[210px] bg-violet-600 text-white shadow-sm hover:bg-violet-700"
+            >
+              {aiPending ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Sparkles className="size-4" />
+              )}
+              {aiPending ? "Ожидаем ответ модели…" : "Обновить AI-обзор"}
             </Button>
           </div>
+          {aiPending && (
+            <div
+              role="status"
+              className="mt-4 flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800"
+            >
+              <LoaderCircle className="size-5 shrink-0 animate-spin" />
+              <span>
+                Отправляем данные периода через OpenRouter в модель
+                <b> OpenAI GPT-4.1 mini</b> и ожидаем аналитический ответ.
+              </span>
+            </div>
+          )}
+          {aiError && (
+            <p role="alert" className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              AI-обзор не обновлён: {aiError}
+            </p>
+          )}
           <h3 className="mt-5 text-xl font-semibold text-slate-950">
             {weakestMetric
               ? `Основная точка внимания — ${weakestMetric.name.toLowerCase()}`
               : "Для AI-обзора недостаточно данных"}
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            {strongestMetric && weakestMetric
+            {aiSummary || (strongestMetric && weakestMetric
               ? `Лучший результат периода: «${strongestMetric.name}» — ${strongestMetric.progress}% плана. «${weakestMetric.name}» выполнена на ${weakestMetric.progress}%. На ревью стоит согласовать действия по отстающим показателям и зафиксировать решения по открытым вопросам.`
-              : "Добавьте инициативы, метрики и вопросы, затем обновите AI-обзор."}
+              : "Добавьте инициативы, метрики и вопросы, затем обновите AI-обзор.")}
           </p>
         </div>
         <div className="grid lg:grid-cols-3">
@@ -4101,8 +4211,54 @@ function PlaceholderPage({ title }: { title: string }) {
   );
 }
 
-function Dashboard({ onSignOut }: { onSignOut: () => void }) {
+const onboardingSteps: Array<{
+  page: GlobalPage;
+  title: string;
+  description: string;
+}> = [
+  {
+    page: "Стратегия",
+    title: "Ознакомьтесь со стратегией компании",
+    description: "Начните с направлений развития, целей и целевых ориентиров Московской Биржи.",
+  },
+  {
+    page: "Метрики",
+    title: "Добавляйте метрики",
+    description: "Заведите показатели, целевые и фактические значения, а также источник данных.",
+  },
+  {
+    page: "Инициативы",
+    title: "Добавляйте инициативы в портфель",
+    description: "Свяжите инициативы с целями и метриками, назначьте команду, FTE и риски.",
+  },
+  {
+    page: "Мои QBR",
+    title: "Готовьтесь к QBR",
+    description: "Включите инициативы из портфеля в квартал, обновите метрики и сформулируйте вопросы.",
+  },
+  {
+    page: "Мои QBR",
+    title: "Проведите ревью",
+    description: "Запустите ревью при готовности от 70%, обсудите отклонения и зафиксируйте решения.",
+  },
+  {
+    page: "Мои QBR",
+    title: "Подведите итоги и скачайте PDF",
+    description: "После решения всех вопросов завершите ревью и сохраните итоговый отчет кнопкой «Скачать PDF».",
+  },
+];
+
+function Dashboard({
+  onSignOut,
+  showOnboarding,
+}: {
+  onSignOut: () => void;
+  showOnboarding: boolean;
+}) {
   const [globalPage, setGlobalPage] = useState<GlobalPage>("Стратегия");
+  const [onboardingStep, setOnboardingStep] = useState<number | null>(
+    showOnboarding ? 0 : null,
+  );
   const [mode, setMode] = useState("Подготовка");
   const [qbrName, setQbrName] = useState("Цифровые решения");
   const [quarterIndex, setQuarterIndex] = useState(1);
@@ -4150,9 +4306,20 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
       if (!active) return;
       if (saved) {
         setGlobalPage("Стратегия"); setMode(saved.mode); setQbrName(saved.qbrName);
-        setQuarterIndex(saved.quarterIndex); setMetricCatalog(saved.metricCatalog);
+        setQuarterIndex(saved.quarterIndex); setMetricCatalog([
+          ...saved.metricCatalog,
+          ...strategicMetrics.filter(
+            (metric) => !saved.metricCatalog.some((item) => item.id === metric.id),
+          ),
+        ]);
         setMetricItems(saved.metricItems); setTeams(saved.teams);
-        setInitiativeItems(saved.initiativeItems); setQbrInitiativeIds(saved.qbrInitiativeIds);
+        setInitiativeItems([
+          ...saved.initiativeItems,
+          ...cloneInitiatives(initiatives).filter(
+            (initiative) =>
+              !saved.initiativeItems.some((item) => item.id === initiative.id),
+          ),
+        ]); setQbrInitiativeIds(saved.qbrInitiativeIds);
         setQuestions(saved.questions); qbrSnapshots.current = saved.snapshots ?? {};
       }
       persistenceReady.current = true;
@@ -4170,6 +4337,11 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     }, 500);
     return () => window.clearTimeout(timer);
   }, [globalPage, mode, qbrName, quarterIndex, metricCatalog, metricItems, teams, initiativeItems, qbrInitiativeIds, questions]);
+
+  useEffect(() => {
+    if (onboardingStep === null) return;
+    setGlobalPage(onboardingSteps[onboardingStep].page);
+  }, [onboardingStep]);
   const quarter = quarters[quarterIndex];
   const selectedQbrInitiatives = initiativeItems.filter((initiative) =>
     qbrInitiativeIds.includes(initiative.id),
@@ -4303,7 +4475,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   return (
     <SidebarProvider>
       <Sidebar
-        className="border-r-0 bg-[#111827] text-white"
+        className="border-r-0 bg-[#111827] text-white print:hidden"
         collapsible="icon"
       >
         <SidebarHeader className="border-b border-white/10 px-3 py-4">
@@ -4336,7 +4508,8 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                       onClick={() => setGlobalPage(label)}
                       isActive={globalPage === label}
                       tooltip={label}
-                      className="h-10 text-slate-300 hover:bg-white/8 hover:text-white data-[active=true]:bg-white/10 data-[active=true]:text-white"
+                      data-onboarding-target={label}
+                      className={`h-10 text-slate-300 hover:bg-white/8 hover:text-white data-[active=true]:bg-white/10 data-[active=true]:text-white ${onboardingStep !== null && onboardingSteps[onboardingStep].page === label ? "ring-2 ring-sky-300 ring-offset-2 ring-offset-[#111827]" : ""}`}
                     >
                       <Icon />
                       <span>{label}</span>
@@ -4427,7 +4600,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
       </Sidebar>
 
       <SidebarInset className="min-w-0 bg-[#f5f7fa]">
-        <header className="sticky top-0 z-20 flex min-h-[84px] items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:px-7">
+        <header className="sticky top-0 z-20 flex min-h-[84px] items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur print:hidden md:px-7">
           <div className="flex min-w-0 items-center gap-3">
             <SidebarTrigger className="md:hidden" />
             {globalPage === "Мои QBR" ? (
@@ -4516,7 +4689,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         )}
         {globalPage === "Мои QBR" && (
           <>
-            <section className="border-b border-slate-200 bg-white px-4 py-4 md:px-7">
+            <section className="border-b border-slate-200 bg-white px-4 py-4 print:hidden md:px-7">
               <div className="flex w-full items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                   {mode === "Подготовка" ? (
@@ -4573,8 +4746,10 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                         Завершить ревью <ArrowRight className="size-5" />
                       </Button>
                       <p className="col-start-2 text-center text-xs font-medium text-slate-500">
-                        {questionsWithDecision}/{questions.length} вопросов
-                        имеют решение
+                        {questions.length - questionsWithDecision}/{questions.length}{" "}
+                        {questions.length - questionsWithDecision === 1
+                          ? "вопрос без решения"
+                          : "вопросов без решения"}
                       </p>
                     </div>
                   )}
@@ -4585,7 +4760,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                         className="w-full bg-slate-950 text-white hover:bg-slate-800"
                       >
                         <FileDown />
-                        PDF
+                        Скачать PDF
                       </Button>
                     </div>
                   )}
@@ -4627,6 +4802,57 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           </>
         )}
       </SidebarInset>
+      {onboardingStep !== null && (
+        <div className="fixed inset-0 z-50 bg-slate-950/35 pointer-events-none">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Знакомство с QBR Tool"
+            className="pointer-events-auto absolute bottom-5 left-1/2 w-[min(92vw,560px)] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">
+                  Основной путь · шаг {onboardingStep + 1} из {onboardingSteps.length}
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                  {onboardingSteps[onboardingStep].title}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {onboardingSteps[onboardingStep].description}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setOnboardingStep(null)}>
+                Пропустить
+              </Button>
+            </div>
+            <Progress
+              value={((onboardingStep + 1) / onboardingSteps.length) * 100}
+              className="mt-5 h-1.5 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-blue-600"
+            />
+            <div className="mt-4 flex justify-between gap-3">
+              <Button
+                variant="outline"
+                disabled={onboardingStep === 0}
+                onClick={() => setOnboardingStep(Math.max(0, onboardingStep - 1))}
+              >
+                <ArrowLeft /> Назад
+              </Button>
+              <Button
+                onClick={() =>
+                  onboardingStep === onboardingSteps.length - 1
+                    ? setOnboardingStep(null)
+                    : setOnboardingStep(onboardingStep + 1)
+                }
+                className="bg-slate-950 text-white hover:bg-slate-800"
+              >
+                {onboardingStep === onboardingSteps.length - 1 ? "Начать работу" : "Далее"}
+                {onboardingStep < onboardingSteps.length - 1 && <ArrowRight />}
+              </Button>
+            </div>
+          </section>
+        </div>
+      )}
     </SidebarProvider>
   );
 }
@@ -4669,8 +4895,9 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (session: AuthSession) => voi
 
 export default function Home() {
   const [session, setSession] = useState<AuthSession | null | undefined>(undefined);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   useEffect(() => { setSession(authService.session()); }, []);
   if (session === undefined) return <main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-500">Загрузка…</main>;
-  if (!session) return <LoginScreen onSignedIn={setSession} />;
-  return <Dashboard onSignOut={async () => { await authService.signOut(); setSession(null); }} />;
+  if (!session) return <LoginScreen onSignedIn={(nextSession) => { setSession(nextSession); setShowOnboarding(true); }} />;
+  return <Dashboard showOnboarding={showOnboarding} onSignOut={async () => { await authService.signOut(); setSession(null); setShowOnboarding(false); }} />;
 }
