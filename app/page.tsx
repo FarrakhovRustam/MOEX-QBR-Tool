@@ -1005,7 +1005,7 @@ function StrategyPage({
           <div className="relative p-6 md:p-9">
             <div className="absolute inset-y-0 left-0 w-1.5 bg-[#ef3e42]" />
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-              Стратегия Группы Московская Биржа 2028
+              Корпоративная стратегия 2028
             </p>
             <h2 className="mt-4 max-w-3xl text-2xl font-semibold tracking-tight md:text-4xl">
               Существенный рост капитализации при долгосрочной устойчивой
@@ -4219,7 +4219,7 @@ const onboardingSteps: Array<{
   {
     page: "Стратегия",
     title: "Ознакомьтесь со стратегией компании",
-    description: "Начните с направлений развития, целей и целевых ориентиров Московской Биржи.",
+    description: "Начните с направлений развития, целей и целевых ориентиров компании.",
   },
   {
     page: "Метрики",
@@ -4357,7 +4357,7 @@ function Dashboard({
 
   const pageTitle =
     globalPage === "Стратегия"
-      ? "Стратегия Группы Московская Биржа"
+      ? "Корпоративная стратегия"
       : globalPage === "Мои QBR"
         ? qbrName
         : globalPage;

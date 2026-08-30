@@ -1,7 +1,7 @@
 do $$
 declare org uuid; direction uuid; goal uuid; team uuid; employee uuid; test_user uuid; qbr uuid;
 begin
-  insert into public.organizations(name) values('Группа Московская Биржа') returning id into org;
+  insert into public.organizations(name) values('Группа компаний') returning id into org;
   insert into public.strategic_directions(organization_id,name,description,sort_order) values
     (org,'Развитие рынков капитала','Рост числа эмитентов, инструментов и ликвидности',1),
     (org,'Активное вовлечение конечного клиента','Персональные цифровые сервисы',2),
